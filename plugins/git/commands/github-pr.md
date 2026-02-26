@@ -7,9 +7,8 @@ A command that analyzes the current branch's changes and auto-creates a GitHub P
 - `$ARGUMENTS`: Optional. Pass the `--draft` flag to create a draft PR.
 
 ## Tool Priority
-- For GitHub-related tasks (PR lookup, repo info, etc.), **prioritize GitHub MCP tools**.
+- For GitHub-related tasks (PR lookup, repo info, PR creation, etc.), **prioritize GitHub MCP tools**.
 - Fall back to `gh` CLI only if MCP tools fail or are unavailable.
-- **Exception: PR creation** prioritizes `gh pr create` CLI. (MCP tools have an issue where newlines in multiline body are rendered as literal `\n`.)
 - Execute git local commands (`git status`, `git log`, `git diff`, etc.) via Bash.
 
 ## Procedure
@@ -95,22 +94,13 @@ Select the most appropriate type by comprehensively analyzing the commit history
 
 ### Step 6: Create PR
 
-1. Create the PR using `gh pr create` CLI.
-   - The body must be passed using a HEREDOC (`<<'EOF'`). (Do not use MCP tools as they have an issue where newlines in multiline body are rendered as literal `\n`.)
-   - Example:
-     ```
-     gh pr create --title "title" --body "$(cat <<'EOF'
-     ## Summary
-     content...
-
-     ## Changes
-     - change 1
-     EOF
-     )"
-     ```
-   - `--base`: Default branch detected in Step 2
-   - `--head`: Current branch name
-   - If `$ARGUMENTS` contains `--draft`, add the `--draft` flag.
+1. Create the PR using GitHub MCP `create_pull_request`.
+   - `base`: Default branch detected in Step 2
+   - `head`: Current branch name
+   - `title`: PR title generated in Step 4
+   - `body`: PR body generated in Step 5. **The body must be a properly formatted multiline markdown string with actual newline characters (not literal `\n`).** Ensure all section headers, blank lines between sections, and bullet point line breaks are preserved exactly as authored.
+   - If `$ARGUMENTS` contains `--draft`, set `draft: true`.
+   - Fall back to `gh pr create` CLI if MCP fails.
 2. Output the created PR URL to the user.
 
 ## Exclusions

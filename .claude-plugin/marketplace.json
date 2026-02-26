@@ -13,7 +13,7 @@
       "name": "git",
       "source": "./plugins/git",
       "description": "Git and Github workflows for claude code",
-      "version": "2026.02.4",
+      "version": "2026.02.5",
       "keywords": ["git", "commit", "pull-request", "conventional-commit", "rebase", "stacked-pr"]
     },
     {
