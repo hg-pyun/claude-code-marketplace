@@ -23,14 +23,37 @@ A command that analyzes the current branch's changes and auto-creates a GitHub P
    - If the remote branch doesn't exist, or if there are unpushed local commits per `git log @{upstream}..HEAD --oneline`, execute `git push -u origin <current-branch-name>` to auto-push.
    - If the push fails, output an error message and abort.
 5. Check whether there is already an open PR from the current branch using GitHub MCP `list_pull_requests`.
-   - If an open PR exists, **output a warning with the existing PR URL** and confirm with the user via AskUserQuestion whether to continue.
+   - If an open PR exists, **output a warning with the existing PR URL** and confirm with the user via AskUserQuestion whether to update the existing PR or abort.
+   - If the user chooses to update, save the existing PR number for use in Step 6.
 
-### Step 2: Detect Default Branch
+### Step 2: Detect Base Branch
 
-1. Check the repository's default branch with `gh api repos/{owner}/{repo} --jq .default_branch`.
-   - `{owner}` and `{repo}` are extracted from the output of `git remote get-url origin`.
-2. Fall back to the `HEAD branch` output from `git remote show origin` if detection fails.
-3. If all methods fail, fall back in order: `main` → `master`.
+#### 2-1. Extract Repository Info
+- Parse `{owner}` and `{repo}` from `git remote get-url origin`.
+
+#### 2-2. Get the Repository Default Branch (priority order)
+1. GitHub MCP — retrieve repository metadata to obtain the default branch.
+2. `gh api repos/{owner}/{repo} --jq .default_branch`
+3. Parse `HEAD branch` from `git remote show origin`.
+4. Final fallback: `main` → `master`.
+
+#### 2-3. Detect the Actual Parent Branch
+The current branch may not have been forked from the default branch (e.g., stacked PRs, `develop`-based workflows). Detect the true parent as follows:
+
+1. List candidate base branches:
+   - The default branch from 2-2.
+   - Run `git branch -r` and collect remote tracking branches, excluding `HEAD` and the current branch itself.
+2. For each candidate, compute the fork point:
+   ```
+   merge_base=$(git merge-base <candidate> HEAD)
+   distance=$(git rev-list --count $merge_base..HEAD)
+   ```
+3. The candidate with the **smallest distance** (fewest commits from merge-base to HEAD) is the most likely parent branch.
+   - If multiple candidates share the same smallest distance, prefer the default branch.
+
+#### 2-4. Determine Final Base
+- If the detected parent differs from the default branch and the distance is **strictly less** than the distance to the default branch, use the detected parent as base.
+- Otherwise, use the default branch.
 
 ### Step 3: Analyze Changes
 
@@ -94,14 +117,20 @@ Select the most appropriate type by comprehensively analyzing the commit history
 
 ### Step 6: Create PR
 
-1. Create the PR using GitHub MCP `create_pull_request`.
-   - `base`: Default branch detected in Step 2
-   - `head`: Current branch name
-   - `title`: PR title generated in Step 4
-   - `body`: PR body generated in Step 5. **The body must be a properly formatted multiline markdown string with actual newline characters (not literal `\n`).** Ensure all section headers, blank lines between sections, and bullet point line breaks are preserved exactly as authored.
-   - If `$ARGUMENTS` contains `--draft`, set `draft: true`.
+1. **If updating an existing PR** (PR number saved in Step 1):
+   - Update the PR using GitHub MCP `update_pull_request`.
+     - `title`: PR title generated in Step 4
+     - `body`: PR body generated in Step 5. **The body must be a properly formatted multiline markdown string with actual newline characters (not literal `\n`).** Ensure all section headers, blank lines between sections, and bullet point line breaks are preserved exactly as authored.
+   - Fall back to `gh pr edit` CLI if MCP fails.
+2. **If creating a new PR**:
+   - Create the PR using GitHub MCP `create_pull_request`.
+     - `base`: Base branch determined in Step 2
+     - `head`: Current branch name
+     - `title`: PR title generated in Step 4
+     - `body`: PR body generated in Step 5. **The body must be a properly formatted multiline markdown string with actual newline characters (not literal `\n`).** Ensure all section headers, blank lines between sections, and bullet point line breaks are preserved exactly as authored.
+     - If `$ARGUMENTS` contains `--draft`, set `draft: true`.
    - Fall back to `gh pr create` CLI if MCP fails.
-2. Output the created PR URL to the user.
+3. Output the created or updated PR URL to the user.
 
 ## Exclusions
 - Breaking change '!' marker is not automatically added.
