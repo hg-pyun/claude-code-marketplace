@@ -34,13 +34,25 @@ Then validate:
 
 **[Parallel]** Execute the following simultaneously:
 - `git reflog show <current-branch> --format='%gs' | tail -1` → parse parent branch from creation entry
+- `git reflog show HEAD --format='%gs' | grep -m1 "checkout: moving from .* to <current-branch>"` → parse HEAD-reflog parent
 - `git ls-remote --heads origin <current-branch-name>` → check remote branch existence
 
-**Parent branch logic:**
-1. Parse the reflog creation entry (typically `branch: Created from <parent>`).
-2. If a parent branch is found and exists locally or on the remote → use it as base.
-3. If a parent branch is found but no longer exists → ask the user via AskUserQuestion to input the base branch manually, showing the deleted branch name as context.
-4. If reflog parsing fails (no "Created from" entry, or reflog expired) → use the default branch from Step 2-1.
+**Parent branch detection logic (in priority order):**
+
+1. **Branch reflog**: Parse the creation entry (typically `branch: Created from <parent>`).
+   - If `<parent>` is a branch name (not "HEAD", not a commit hash) and exists locally or on remote → **use it as base**.
+   - If `<parent>` is a branch name but no longer exists → ask the user via AskUserQuestion to input the base branch manually, showing the deleted branch name as context.
+
+2. **HEAD reflog** (when branch reflog says "Created from HEAD" or contains a commit hash):
+   - From the HEAD reflog entry `checkout: moving from <source> to <current-branch>`, extract `<source>` using: `echo "<entry>" | sed 's/checkout: moving from \(.*\) to .*/\1/'`
+   - Verify `<source>` is a valid local branch: `git show-ref --verify --quiet refs/heads/<source>`
+   - If valid → **use it as base**.
+
+3. **User selection** (when both reflog approaches fail — e.g., reflog expired or detached HEAD):
+   - Collect candidate branches: [default branch from Step 2-1] + any of [develop, development, staging] that exist locally.
+   - Ask the user via AskUserQuestion to select the base branch from the candidate list, with the default branch pre-selected as the recommended option.
+
+4. **Final fallback**: use the default branch from Step 2-1.
 
 #### 2-3. Auto-push
 - If the remote branch doesn't exist (from the `git ls-remote` result above), or if there are unpushed local commits per `git log @{upstream}..HEAD --oneline`, execute `git push -u origin <current-branch-name>`.
