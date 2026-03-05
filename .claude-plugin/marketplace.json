@@ -29,6 +29,13 @@
       "description": "Linear workflow plugins for Claude code",
       "version": "2026.02.1",
       "keywords": ["linear", "ticket", "interview"]
+    },
+    {
+      "name": "craft",
+      "source": "./plugins/craft",
+      "description": "Writing skills for creating, testing, and deploying Claude Code skills",
+      "version": "2026.03",
+      "keywords": ["skill", "writing", "tdd", "testing", "documentation", "craft"]
     }
   ]
 }
