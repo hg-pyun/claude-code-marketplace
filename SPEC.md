@@ -34,9 +34,16 @@ claude-code-marketplace/
 │   │   ├── .claude-plugin/
 │   │   │   └── plugin.json
 │   │   ├── commands/
-│   │   │   ├── git-commit.md
-│   │   │   ├── github-pr.md
-│   │   │   └── git-rebase-stack.md
+│   │   │   ├── git-commit.md       # Thin wrapper → invokes skill
+│   │   │   ├── github-pr.md        # Thin wrapper → invokes skill
+│   │   │   └── git-rebase-stack.md # Thin wrapper → invokes skill
+│   │   ├── skills/
+│   │   │   ├── git-commit/
+│   │   │   │   └── SKILL.md        # Full commit procedure
+│   │   │   ├── github-pr/
+│   │   │   │   └── SKILL.md        # Full PR procedure
+│   │   │   └── git-rebase-stack/
+│   │   │       └── SKILL.md        # Full rebase procedure
 │   │   └── README.md
 │   ├── linear/                 # Linear ticket enrichment plugin
 │   │   ├── .claude-plugin/
@@ -103,6 +110,35 @@ claude-code-marketplace/
 | `description` | Y | Plugin description |
 | `version` | Y | Date-based version (YYYY.MM[.patch]) |
 | `keywords` | N | Array of search keywords |
+
+## Skills Pattern
+
+### Overview
+
+Skills are reusable procedure files that contain the full logic for a command. Commands act as thin wrappers that invoke their corresponding skill. This pattern separates the user-facing command interface from the detailed procedure, following the superpowers (obra/superpowers) convention.
+
+### Directory Convention
+
+```
+plugins/<name>/
+├── commands/
+│   └── <command-name>.md       # Thin wrapper: description + skill invocation
+└── skills/
+    └── <command-name>/
+        └── SKILL.md            # Full procedure (the actual logic)
+```
+
+### Command ↔ Skill Relationship
+
+- Each command has a **1:1 mapping** to a skill.
+- The command file contains only a brief description, argument docs, and a single skill invocation line.
+- The skill file contains the complete step-by-step procedure previously housed in the command.
+- Skill invocation syntax: `Invoke the <plugin>:<skill-name> skill and follow it exactly as presented to you.`
+
+### When to Use
+
+- When a command's procedure exceeds ~50 lines, extract it into a skill.
+- When the agent needs to follow a defined process (e.g., commit, PR creation), skills ensure consistent behavior.
 
 ## Version Management Rules
 

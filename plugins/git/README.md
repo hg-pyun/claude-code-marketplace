@@ -10,6 +10,18 @@ Git workflow automation plugin. Analyzes the diff of staged changes to auto-gene
 | `github-pr` | Analyzes current branch changes → auto-creates a GitHub PR with a Korean conventional commit-style title |
 | `git-rebase-stack` | Automatically cleans up stacked branches using `git rebase --onto --update-refs` |
 
+## Architecture
+
+This plugin uses the **skills pattern**: commands are thin wrappers that invoke skills containing the full procedure.
+
+```
+commands/git-commit.md       → skills/git-commit/SKILL.md
+commands/github-pr.md        → skills/github-pr/SKILL.md
+commands/git-rebase-stack.md → skills/git-rebase-stack/SKILL.md
+```
+
+Each command delegates to its corresponding skill via `Invoke the git:<skill-name> skill`. The skill files contain the complete step-by-step procedures.
+
 ## Usage Examples
 
 ### git-commit
