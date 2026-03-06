@@ -95,7 +95,7 @@ Generate the commit message according to the following rules.
 
 ### Step 5: Execute Commit
 - Execute `git commit` with the generated message immediately (without user confirmation).
-- Do not include a Co-Authored-By header.
+- **IMPORTANT: NEVER include a `Co-Authored-By` trailer. Adding Co-Authored-By headers to AI-generated commits is strictly prohibited.**
 - After a successful commit, show the result to the user with `git log --oneline -1`.
 
 ## Exclusions

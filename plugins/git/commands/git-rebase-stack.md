@@ -134,7 +134,7 @@ After rebase completion:
 
 ## Ground Rules
 - All guidance, questions, and reports must be output in **Korean**.
-- Do not include `Co-Authored-By` headers.
+- **IMPORTANT: NEVER include a `Co-Authored-By` trailer. Adding Co-Authored-By headers to AI-generated commits is strictly prohibited.**
 - Execute git local commands (`git status`, `git log`, `git rebase`, etc.) via Bash.
 - For GitHub-related information retrieval, prioritize GitHub MCP tools, falling back to `gh` CLI on failure.
 
