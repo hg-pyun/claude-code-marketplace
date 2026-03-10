@@ -33,9 +33,9 @@
     {
       "name": "craft",
       "source": "./plugins/craft",
-      "description": "Writing skills for creating, testing, and deploying Claude Code skills",
-      "version": "2026.03",
-      "keywords": ["skill", "writing", "tdd", "testing", "documentation", "craft"]
+      "description": "Tools for creating, testing, evaluating, and deploying Claude Code skills",
+      "version": "2026.03.1",
+      "keywords": ["skill", "craft", "skill-creator", "eval", "benchmark", "testing"]
     }
   ]
 }
