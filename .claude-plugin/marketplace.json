@@ -36,6 +36,13 @@
       "description": "Tools for creating, testing, evaluating, and deploying Claude Code skills",
       "version": "2026.03.1",
       "keywords": ["skill", "craft", "skill-creator", "eval", "benchmark", "testing"]
+    },
+    {
+      "name": "session-harvester",
+      "source": "./plugins/session-harvester",
+      "description": "Automatically detects repeated workflow patterns from sessions and suggests creating reusable skills, subagents, or hooks",
+      "version": "2026.03",
+      "keywords": ["session", "harvest", "pattern", "workflow", "automation", "skill-generation"]
     }
   ]
 }

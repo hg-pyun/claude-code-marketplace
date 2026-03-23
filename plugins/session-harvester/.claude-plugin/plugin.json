@@ -1,0 +1,16 @@
+{
+  "name": "session-harvester",
+  "description": "Automatically detects repeated workflow patterns from sessions and suggests creating reusable skills, subagents, or hooks",
+  "version": "2026.03",
+  "settings": {
+    "enabled": true,
+    "min_repeat_threshold": 2,
+    "excluded_tools": [],
+    "log_user_prompts": true,
+    "auto_masking": true,
+    "masking_patterns": [],
+    "pattern_retention_days": 90,
+    "max_suggestions": 5,
+    "default_save_location": "ask"
+  }
+}
