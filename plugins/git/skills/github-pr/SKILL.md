@@ -1,7 +1,22 @@
-# GitHub PR Command (Conventional Commit, Korean)
+---
+name: github-pr
+description: >
+  Auto-create or update GitHub Pull Requests with Korean conventional commit-style titles.
+  TRIGGER when: user asks to create a PR, open a pull request, or push changes for review
+  (PR, 풀리퀘, 풀리퀘스트, pull request, PR 만들어, PR 생성).
+  DO NOT TRIGGER when: user is just discussing PRs or reviewing existing PRs.
+---
+
+# GitHub PR Skill (Conventional Commit, Korean)
 
 ## Overview
-A command that analyzes the current branch's changes and auto-creates a GitHub Pull Request with a Korean conventional commit-style title.
+A skill that analyzes the current branch's changes and auto-creates a GitHub Pull Request with a Korean conventional commit-style title.
+
+## Settings Reference
+- `$LANGUAGE`: The language setting from plugin.json `settings.language`.
+  Override with `--lang=<value>` argument.
+  Presets: Korean, English, Japanese, Chinese.
+  Custom values also accepted (e.g., Spanish, Bahasa Indonesia).
 
 ## Arguments
 - `$ARGUMENTS`: Optional. Pass the `--draft` flag to create a draft PR.
@@ -73,31 +88,7 @@ Then validate:
 
 ### Step 5: Generate PR Title (Conventional Commit Format)
 
-```
-<type>(<scope>): <Korean description>
-```
-
-#### Type (use only standard types)
-- `feat`: New feature
-- `fix`: Bug fix
-- `docs`: Documentation changes
-- `style`: Code style changes (formatting, semicolons, etc., no behavior change)
-- `refactor`: Refactoring (no feature change, not a bug fix)
-- `test`: Adding/modifying tests
-- `chore`: Build, config, package, and other miscellaneous changes
-
-Select the most appropriate type by comprehensively analyzing the commit history and diff.
-
-#### Scope
-- Automatically inferred from changed files/directories.
-- Example: `src/auth/` changes → `auth`, `components/Button.tsx` changes → `button`
-- Omit if no clear scope can be determined or the change scope is broad.
-
-#### Description
-- **Must be written in Korean.**
-- Limited to 72 characters or fewer.
-- Do not end with a period.
-- Summarize the core changes of the entire PR in a single sentence.
+Generate the PR title according to `references/conventional-commit.md`.
 
 ### Step 6: Generate PR Body
 
@@ -116,7 +107,7 @@ Select the most appropriate type by comprehensively analyzing the commit history
 -
 ```
 
-- Summary and Changes are auto-written **in Korean** by analyzing the commit history and diff.
+- Summary and Changes are auto-written **in $LANGUAGE** by analyzing the commit history and diff.
 
 ### Step 7: Create or Update PR
 
