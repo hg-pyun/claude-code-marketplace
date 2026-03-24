@@ -1,10 +1,16 @@
 ---
 name: git-commit
 description: >
-  Auto-generate and execute git commits with Korean conventional commit messages.
-  TRIGGER when: user asks to commit, save changes, or organize changes
-  (commit, 커밋, 변경사항 저장, 변경사항 정리).
-  DO NOT TRIGGER when: user is just discussing git concepts or asking about commit history.
+  Auto-generate and execute git commits with conventional commit messages.
+  Analyzes staged/unstaged changes, suggests commit splitting when appropriate,
+  and generates structured commit messages following conventional commit format.
+  TRIGGER when: user asks to commit, save changes, organize changes, or wrap up work
+  (e.g., "커밋해줘", "커밋 날려", "변경사항 저장해줘", "변경사항 정리해줘",
+  "작업 마무리해줘", "이거 저장해", "코드 올려줘", "지금까지 한거 커밋",
+  "commit this", "save my work", "wrap this up").
+  Also trigger with /git-commit slash command.
+  DO NOT TRIGGER when: user is asking about commit history (git log),
+  explaining what a commit is, or discussing commit strategies without intent to act now.
 ---
 
 # Git Commit Skill (Conventional Commit, Korean)

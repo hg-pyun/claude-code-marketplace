@@ -1,10 +1,18 @@
 ---
 name: github-pr
 description: >
-  Auto-create or update GitHub Pull Requests with Korean conventional commit-style titles.
-  TRIGGER when: user asks to create a PR, open a pull request, or push changes for review
-  (PR, 풀리퀘, 풀리퀘스트, pull request, PR 만들어, PR 생성).
-  DO NOT TRIGGER when: user is just discussing PRs or reviewing existing PRs.
+  Auto-create or update GitHub Pull Requests with conventional commit-style titles.
+  Detects base branch, generates PR title and description from branch commits,
+  links related issues, and creates the PR via GitHub API.
+  TRIGGER when: user asks to create a PR, open a pull request, push changes for review,
+  or send work upstream
+  (e.g., "PR 만들어줘", "PR 날려", "풀리퀘 생성해줘", "풀리퀘스트 올려줘",
+  "리뷰 보내줘", "리뷰 올려줘", "이거 PR 해줘", "푸시하고 PR 만들어",
+  "코드 리뷰 요청해줘", "이 브랜치 올려줘",
+  "create a PR", "open a pull request", "send this for review", "push this up for review").
+  Also trigger with /github-pr slash command.
+  DO NOT TRIGGER when: user is reviewing an existing PR, asking about PR status,
+  or discussing PR workflow without intent to create one now.
 ---
 
 # GitHub PR Skill (Conventional Commit, Korean)
