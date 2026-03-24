@@ -43,6 +43,13 @@
       "description": "Automatically detects repeated workflow patterns from sessions and suggests creating reusable skills, subagents, or hooks",
       "version": "2026.03",
       "keywords": ["session", "harvest", "pattern", "workflow", "automation", "skill-generation"]
+    },
+    {
+      "name": "debug",
+      "source": "./plugins/debug",
+      "description": "API debugging tools — execute cURL requests and trace bugs through the codebase",
+      "version": "2026.03",
+      "keywords": ["debug", "curl", "api", "trace", "bug", "reverse-trace"]
     }
   ]
 }
