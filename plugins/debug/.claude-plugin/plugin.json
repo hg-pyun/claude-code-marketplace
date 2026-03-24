@@ -1,5 +1,5 @@
 {
   "name": "debug",
   "description": "API debugging tools — execute cURL requests and trace bugs through the codebase",
-  "version": "2026.03"
+  "version": "2026.03.24"
 }

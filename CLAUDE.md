@@ -13,13 +13,13 @@ Both values must always be identical.
 
 ### Version Determination Logic
 
-Format: `YYYY.MM[.patch]` — determined based on the current date.
+Format: `YYYY.MM.DD[.patch]` — determined based on the current date.
 
 | Current Version | Condition | New Version |
 |-----------------|-----------|-------------|
-| Not the current month | — | `YYYY.MM` |
-| `YYYY.MM` | Same as current month | `YYYY.MM.1` |
-| `YYYY.MM.N` | Same as current month | `YYYY.MM.(N+1)` |
+| Not today | — | `YYYY.MM.DD` |
+| `YYYY.MM.DD` | Same as today | `YYYY.MM.DD.1` |
+| `YYYY.MM.DD.N` | Same as today | `YYYY.MM.DD.(N+1)` |
 
 ### Pre-commit Checklist
 

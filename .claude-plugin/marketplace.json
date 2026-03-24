@@ -13,42 +13,42 @@
       "name": "git",
       "source": "./plugins/git",
       "description": "Git and Github workflows for claude code",
-      "version": "2026.03.3",
+      "version": "2026.03.24",
       "keywords": ["git", "commit", "pull-request", "conventional-commit", "rebase", "stacked-pr"]
     },
     {
       "name": "plan",
       "source": "./plugins/plan",
       "description": "Automatically generates project spec documents through in-depth interviews",
-      "version": "2026.02.1",
+      "version": "2026.03.24",
       "keywords": ["interview", "spec", "requirements", "planning"]
     },
     {
       "name": "linear",
       "source": "./plugins/linear",
       "description": "Linear workflow plugins for Claude code",
-      "version": "2026.02.1",
+      "version": "2026.03.24",
       "keywords": ["linear", "ticket", "interview"]
     },
     {
       "name": "craft",
       "source": "./plugins/craft",
       "description": "Tools for creating, testing, evaluating, and deploying Claude Code skills",
-      "version": "2026.03.1",
+      "version": "2026.03.24",
       "keywords": ["skill", "craft", "skill-creator", "eval", "benchmark", "testing"]
     },
     {
       "name": "session-harvester",
       "source": "./plugins/session-harvester",
       "description": "Automatically detects repeated workflow patterns from sessions and suggests creating reusable skills, subagents, or hooks",
-      "version": "2026.03",
+      "version": "2026.03.24",
       "keywords": ["session", "harvest", "pattern", "workflow", "automation", "skill-generation"]
     },
     {
       "name": "debug",
       "source": "./plugins/debug",
       "description": "API debugging tools — execute cURL requests and trace bugs through the codebase",
-      "version": "2026.03",
+      "version": "2026.03.24",
       "keywords": ["debug", "curl", "api", "trace", "bug", "reverse-trace"]
     }
   ]
