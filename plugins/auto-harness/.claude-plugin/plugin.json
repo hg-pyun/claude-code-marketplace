@@ -1,0 +1,5 @@
+{
+  "name": "auto-harness",
+  "description": "GAN-inspired harness framework: Planner → Generator → Evaluator 3-agent system for autonomous fullstack app development with iterative feedback loops",
+  "version": "2026.03.26"
+}
