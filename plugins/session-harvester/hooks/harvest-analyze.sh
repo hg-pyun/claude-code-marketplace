@@ -4,8 +4,6 @@
 # Reads session log, extracts tool sequences, detects patterns,
 # saves pattern summaries, and deletes the original log.
 
-set -e
-
 # --- Read stdin ---
 INPUT="$(cat)"
 
@@ -31,27 +29,44 @@ if [ ! -f "${LOG_FILE}" ]; then
   exit 0
 fi
 
+TODAY="$(date +%Y-%m-%d)"
+CUTOFF="$(date -v-90d +%Y-%m-%d 2>/dev/null || date -d '90 days ago' +%Y-%m-%d 2>/dev/null || echo '')"
+
+# --- Helper: atomic write — validates jq succeeded before replacing ---
+atomic_mv() {
+  _src="$1" _dst="$2"
+  if [ $? -eq 0 ] && [ -f "${_src}" ]; then
+    mv "${_src}" "${_dst}"
+  else
+    rm -f "${_src}"
+  fi
+}
+
+# --- Helper: hash with fallback ---
+hash_seq() {
+  _h="$(printf '%s' "$1" | shasum -a 256 2>/dev/null | cut -d' ' -f1)" && [ -n "${_h}" ] && printf '%s' "${_h}" && return
+  _h="$(printf '%s' "$1" | sha256sum 2>/dev/null | cut -d' ' -f1)" && [ -n "${_h}" ] && printf '%s' "${_h}" && return
+  printf '%s' "$1" | base64 2>/dev/null | tr -d '\n='
+}
+
 # --- Count tool calls ---
-TOOL_COUNT="$(jq -s '[.[] | select(.event == "tool")] | length' "${LOG_FILE}")"
-if [ "${TOOL_COUNT}" -lt 5 ]; then
+TOOL_COUNT="$(jq -s '[.[] | select(.event == "tool")] | length' "${LOG_FILE}" 2>/dev/null)" || TOOL_COUNT=0
+if [ -z "${TOOL_COUNT}" ] || [ "${TOOL_COUNT}" -lt 5 ] 2>/dev/null; then
   # Short session: skip analysis, clean up, run expiry only
   rm -f "${LOG_FILE}"
-  if [ -f "${PATTERNS_FILE}" ]; then
-    CUTOFF="$(date -v-90d +%Y-%m-%d 2>/dev/null || date -d '90 days ago' +%Y-%m-%d 2>/dev/null || echo '')"
-    if [ -n "${CUTOFF}" ]; then
-      TEMP_FILE="${PATTERNS_FILE}.tmp"
-      jq -c "select(.last_seen >= \"${CUTOFF}\")" "${PATTERNS_FILE}" > "${TEMP_FILE}" 2>/dev/null || true
-      mv "${TEMP_FILE}" "${PATTERNS_FILE}"
-    fi
+  if [ -n "${CUTOFF}" ] && [ -f "${PATTERNS_FILE}" ]; then
+    TEMP_FILE="${PATTERNS_FILE}.tmp.$$"
+    jq -c "select(.last_seen >= \"${CUTOFF}\")" "${PATTERNS_FILE}" > "${TEMP_FILE}" 2>/dev/null \
+      && mv "${TEMP_FILE}" "${PATTERNS_FILE}" \
+      || rm -f "${TEMP_FILE}"
   fi
   exit 0
 fi
 
 # --- Step 1: Extract tool sequences ---
 # Build sequences by splitting on "prompt" events (each prompt starts a new task unit).
-# Tools between prompts form a sequence.
+# Tools between prompts form a sequence, abbreviated to first character.
 SEQUENCES="$(jq -s '
-  # Split events into groups by prompt boundaries
   reduce .[] as $e (
     {groups: [[]], current: 0};
     if $e.event == "prompt" then
@@ -66,31 +81,35 @@ SEQUENCES="$(jq -s '
   | map(
       map(
         if .event == "tool_error" then
-          (.tool | split("") | .[0:1] | .[0] // "?") + "!"
+          (.tool[:1] // "?") + "!"
         else
-          .tool | split("") | .[0:1] | .[0] // "?"
+          .tool[:1] // "?"
         end
       )
       | join("-")
     )
   | map(select(length > 0))
-' "${LOG_FILE}")"
+' "${LOG_FILE}" 2>/dev/null)" || SEQUENCES="[]"
 
-# --- Step 2: Count sequence frequencies ---
-FREQ="$(printf '%s' "${SEQUENCES}" | jq -r '.[]' | sort | uniq -c | sort -rn | head -20)"
+# --- Step 2: Count sequence frequencies (pure jq — no AWK/sort/uniq) ---
+FREQ_JSON="$(printf '%s' "${SEQUENCES}" | jq '
+  group_by(.)
+  | map({sequence: .[0], count: length})
+  | sort_by(-.count)
+  | .[0:20]
+' 2>/dev/null)" || FREQ_JSON="[]"
 
 # --- Step 3: Extract file patterns ---
 FILE_PATHS="$(jq -r '
   select(.event == "tool")
   | .input
   | (.file_path // .path // empty)
-' "${LOG_FILE}" | sort -u)"
+' "${LOG_FILE}" 2>/dev/null | sort -u)" || FILE_PATHS=""
 
-# Abstract file paths to glob patterns: replace specific filenames with *
+# Abstract file paths to glob patterns: /path/to/file.ts → /path/to/*.ts
 GLOB_PATTERNS=""
 if [ -n "${FILE_PATHS}" ]; then
   GLOB_PATTERNS="$(printf '%s\n' "${FILE_PATHS}" \
-    | sed -E 's|/[^/]+\.[a-zA-Z]+$|/*&|; s|/\*/.*/|/*/|' \
     | sed -E 's|(.*/)[^/]+(\.[a-zA-Z]+)$|\1*\2|' \
     | sort -u \
     | head -10)"
@@ -98,31 +117,30 @@ fi
 
 # --- Step 4: Detect retry loops (tool_error followed by same tool) ---
 RETRY_LOOPS="$(jq -s '
-  [range(1; length)]
+  . as $arr
+  | [range(1; ($arr | length))]
   | map(
       select(
-        .[$INPUT[. - 1]].event == "tool_error"
-        and .[$INPUT[.]].event == "tool"
-        and .[$INPUT[. - 1]].tool == .[$INPUT[.]].tool
+        $arr[. - 1].event == "tool_error"
+        and $arr[.].event == "tool"
+        and $arr[. - 1].tool == $arr[.].tool
       )
-      | $INPUT[.].tool
+      | $arr[.].tool
     )
   | group_by(.)
   | map({tool: .[0], count: length})
   | sort_by(-.count)
-' "${LOG_FILE}" 2>/dev/null || echo '[]')"
+' "${LOG_FILE}" 2>/dev/null)" || RETRY_LOOPS="[]"
 
 # --- Step 5: Extract sample prompts ---
-SAMPLE_PROMPTS="$(jq -s '[.[] | select(.event == "prompt") | .prompt] | .[0:5]' "${LOG_FILE}")"
+SAMPLE_PROMPTS="$(jq -s '[.[] | select(.event == "prompt") | .prompt] | .[0:5]' "${LOG_FILE}" 2>/dev/null)" || SAMPLE_PROMPTS="[]"
 
 # --- Step 6: Build pending analysis result ---
-TODAY="$(date +%Y-%m-%d)"
-
-# Parse frequency data into JSON
-FREQ_JSON="$(printf '%s' "${FREQ}" | awk '{count=$1; $1=""; seq=substr($0,2); printf "{\"sequence\":\"%s\",\"count\":%d}\n", seq, count}' | jq -s '.')"
-
-# Build glob patterns JSON
-GLOB_JSON="$(printf '%s\n' "${GLOB_PATTERNS}" | jq -R '.' | jq -s '.')"
+if [ -n "${GLOB_PATTERNS}" ]; then
+  GLOB_JSON="$(printf '%s\n' "${GLOB_PATTERNS}" | jq -R 'select(length > 0)' | jq -s '.' 2>/dev/null)" || GLOB_JSON="[]"
+else
+  GLOB_JSON="[]"
+fi
 
 jq -n \
   --arg session_id "${SESSION_ID}" \
@@ -140,17 +158,19 @@ jq -n \
     file_patterns: $file_patterns,
     retry_loops: $retry_loops,
     sample_prompts: $sample_prompts
-  }' > "${PENDING_FILE}"
+  }' > "${PENDING_FILE}" 2>/dev/null
 
 # --- Step 7: Update cumulative patterns ---
-# For each sequence with count >= min_repeat_threshold (default 2),
-# upsert into patterns.jsonl
 touch "${PATTERNS_FILE}"
 
-printf '%s' "${FREQ_JSON}" | jq -c '.[] | select(.count >= 2)' | while IFS= read -r SEQ_ENTRY; do
+printf '%s' "${FREQ_JSON}" | jq -c '.[] | select(.count >= 2)' 2>/dev/null | while IFS= read -r SEQ_ENTRY; do
   SEQ="$(printf '%s' "${SEQ_ENTRY}" | jq -r '.sequence')"
   COUNT="$(printf '%s' "${SEQ_ENTRY}" | jq -r '.count')"
-  SEQ_HASH="$(printf '%s' "${SEQ}" | shasum -a 256 | cut -d' ' -f1)"
+  SEQ_HASH="$(hash_seq "${SEQ}")"
+
+  if [ -z "${SEQ_HASH}" ]; then
+    continue
+  fi
 
   # Check if pattern already exists
   EXISTING="$(jq -c "select(.id == \"${SEQ_HASH}\")" "${PATTERNS_FILE}" 2>/dev/null | head -1)"
@@ -159,13 +179,16 @@ printf '%s' "${FREQ_JSON}" | jq -c '.[] | select(.count >= 2)' | while IFS= read
     # Update existing: increment count, update last_seen
     OLD_COUNT="$(printf '%s' "${EXISTING}" | jq -r '.count')"
     NEW_COUNT=$((OLD_COUNT + COUNT))
-    TEMP_PAT="${PATTERNS_FILE}.tmp"
-    jq -c "if .id == \"${SEQ_HASH}\" then .count = ${NEW_COUNT} | .last_seen = \"${TODAY}\" else . end" \
-      "${PATTERNS_FILE}" > "${TEMP_PAT}"
-    mv "${TEMP_PAT}" "${PATTERNS_FILE}"
+    TEMP_PAT="${PATTERNS_FILE}.tmp.$$"
+    if jq -c "if .id == \"${SEQ_HASH}\" then .count = ${NEW_COUNT} | .last_seen = \"${TODAY}\" else . end" \
+      "${PATTERNS_FILE}" > "${TEMP_PAT}" 2>/dev/null; then
+      mv "${TEMP_PAT}" "${PATTERNS_FILE}"
+    else
+      rm -f "${TEMP_PAT}"
+    fi
   else
     # Create new pattern entry
-    FIRST_PROMPT="$(printf '%s' "${SAMPLE_PROMPTS}" | jq -r '.[0] // ""')"
+    FIRST_PROMPT="$(printf '%s' "${SAMPLE_PROMPTS}" | jq -r '.[0] // ""' 2>/dev/null)"
     FIRST_GLOB="$(printf '%s\n' "${GLOB_PATTERNS}" | head -1)"
     jq -n -c \
       --arg id "${SEQ_HASH}" \
@@ -186,16 +209,18 @@ printf '%s' "${FREQ_JSON}" | jq -c '.[] | select(.count >= 2)' | while IFS= read
         first_seen: $first_seen,
         last_seen: $last_seen,
         suggested: false
-      }' >> "${PATTERNS_FILE}"
+      }' >> "${PATTERNS_FILE}" 2>/dev/null
   fi
 done
 
 # --- Step 8: Expire old patterns ---
-CUTOFF="$(date -v-90d +%Y-%m-%d 2>/dev/null || date -d '90 days ago' +%Y-%m-%d 2>/dev/null || echo '')"
 if [ -n "${CUTOFF}" ] && [ -f "${PATTERNS_FILE}" ]; then
-  TEMP_PAT="${PATTERNS_FILE}.tmp"
-  jq -c "select(.last_seen >= \"${CUTOFF}\")" "${PATTERNS_FILE}" > "${TEMP_PAT}" 2>/dev/null || true
-  mv "${TEMP_PAT}" "${PATTERNS_FILE}"
+  TEMP_PAT="${PATTERNS_FILE}.tmp.$$"
+  if jq -c "select(.last_seen >= \"${CUTOFF}\")" "${PATTERNS_FILE}" > "${TEMP_PAT}" 2>/dev/null; then
+    mv "${TEMP_PAT}" "${PATTERNS_FILE}"
+  else
+    rm -f "${TEMP_PAT}"
+  fi
 fi
 
 # --- Step 9: Delete original session log ---
