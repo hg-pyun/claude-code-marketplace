@@ -23,7 +23,7 @@ Unified Claude Code toolkit by hg-pyun. Bundles shared review/exploration/archit
 | `/github-pr [--draft]`, "PR 만들어줘", "create a PR" | skill | Detects the base branch, pushes if needed, drafts a conventional-commit-style PR title + body in `$LANGUAGE`, creates the PR via GitHub MCP. |
 | `/git-rebase-stack [base-or-intent]`, "stack 정리해줘" | command | Detects stack topology, plans the rebase, executes `git rebase --onto --update-refs`, optionally pushes. |
 | `/enrich-ticket <url> [--lang=<value>]`, "이 티켓 채워줘" | command | Reads a Linear ticket + comments, interviews the user to fill missing rubric sections, writes the enriched body back via Linear MCP. |
-| `/deep-interview [topic] [--lang=<value>]`, "스펙 잡아줘" | command | One-question-at-a-time interview producing a spec file at `.specs/deep-interview-<slug>.md`. |
+| `/deep-interview [topic] [--lang=<value>] [--threshold=<0.0-1.0>] [--max-rounds=<n>]`, "스펙 잡아줘", "deep interview" | skill | Socratic interview with mathematical ambiguity gating (default threshold 0.2). Round 0 topology lock, per-round clarity scoring, challenge agents (Contrarian/Simplifier/Ontologist), brownfield codebase pre-exploration via `explorer`. Produces a spec at `.specs/deep-interview-<slug>.md`. |
 | `/curl-debug <cURL>`, "이 curl 500 에러 나는데" | skill | Runs the cURL, reverse-traces from signal (stack trace > error message > error code > URL path > body shape) to source code, reports root cause with file:line evidence. |
 | `/code-review`, "코드 리뷰 해줘" | skill | Delegates the current diff (or a named file) to the `reviewer` agent and presents CRITICAL/MAJOR/MINOR findings. |
 | `/core-verify`, "검증해줘" | skill | Evidence-based PASS/FAIL on recent changes — identifies the change surface, runs the code, cites file:line evidence. |
