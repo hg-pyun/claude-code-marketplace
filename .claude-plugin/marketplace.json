@@ -14,49 +14,51 @@
       "source": "./plugins/git",
       "description": "Git and Github workflows for claude code",
       "version": "2026.03.24.2",
-      "keywords": ["git", "commit", "pull-request", "conventional-commit", "rebase", "stacked-pr"]
+      "keywords": [
+        "git",
+        "commit",
+        "pull-request",
+        "conventional-commit",
+        "rebase",
+        "stacked-pr"
+      ]
     },
     {
       "name": "plan",
       "source": "./plugins/plan",
       "description": "Automatically generates project spec documents through in-depth interviews",
       "version": "2026.03.24",
-      "keywords": ["interview", "spec", "requirements", "planning"]
+      "keywords": [
+        "interview",
+        "spec",
+        "requirements",
+        "planning"
+      ]
     },
     {
       "name": "linear",
       "source": "./plugins/linear",
       "description": "Linear workflow plugins for Claude code",
       "version": "2026.03.24",
-      "keywords": ["linear", "ticket", "interview"]
-    },
-    {
-      "name": "craft",
-      "source": "./plugins/craft",
-      "description": "Tools for creating, testing, evaluating, and deploying Claude Code skills",
-      "version": "2026.03.24",
-      "keywords": ["skill", "craft", "skill-creator", "eval", "benchmark", "testing"]
-    },
-    {
-      "name": "session-harvester",
-      "source": "./plugins/session-harvester",
-      "description": "Automatically detects repeated workflow patterns from sessions and suggests creating reusable skills, subagents, or hooks",
-      "version": "2026.03.27",
-      "keywords": ["session", "harvest", "pattern", "workflow", "automation", "skill-generation"]
+      "keywords": [
+        "linear",
+        "ticket",
+        "interview"
+      ]
     },
     {
       "name": "debug",
       "source": "./plugins/debug",
       "description": "API debugging tools — execute cURL requests and trace bugs through the codebase",
       "version": "2026.03.24",
-      "keywords": ["debug", "curl", "api", "trace", "bug", "reverse-trace"]
-    },
-    {
-      "name": "auto-harness",
-      "source": "./plugins/auto-harness",
-      "description": "GAN-inspired Planner → Generator → Evaluator harness for autonomous fullstack app development with iterative feedback loops",
-      "version": "2026.03.26",
-      "keywords": ["harness", "fullstack", "autonomous", "planner", "generator", "evaluator", "sprint", "mcp", "testing"]
+      "keywords": [
+        "debug",
+        "curl",
+        "api",
+        "trace",
+        "bug",
+        "reverse-trace"
+      ]
     }
   ]
 }
