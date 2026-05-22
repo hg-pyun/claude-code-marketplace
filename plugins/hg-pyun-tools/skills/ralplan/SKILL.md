@@ -35,7 +35,9 @@ RALPLAN-DR structured deliberation (Principles / Drivers / Options / pre-mortem)
 
 **Output language**: plan content uses `$LANGUAGE`. Section headers (`## Decision`, `## Drivers`, …) stay English; content uses `$LANGUAGE`.
 
-**Sequential agent passes**: Steps 3 (Architect) and 4 (Critic) MUST run sequentially. Never batch the two Task calls in a single parallel block. Always wait for Architect output before invoking Critic.
+**Sequential agent passes**: Steps 3 (Architect + performance-analyst, parallel) and 4 (Critic) MUST run sequentially. Never invoke Critic before all Phase 3 outputs return. Within Phase 3, architect and performance-analyst are called in a single parallel batch (same message). Critic remains the sole verdict owner.
+
+**Critic single-verdict authority**: performance-analyst is an advisor whose Findings feed Critic; Critic alone returns APPROVE / ITERATE / REJECT. performance-analyst output never replaces or overrides the Critic verdict.
 
 **Iteration cap**: max 5 Architect → Critic loops. If Critic still rejects after 5, present the best version to the user with a note that consensus was not reached.
 
@@ -87,28 +89,36 @@ Examples:
    - If deliberate: **Pre-mortem** (3 failure scenarios) + **Test Plan** (unit / integration / e2e / observability).
 5. **(--interactive only) Draft review**: `AskUserQuestion` showing Principles / Drivers / Options summary. Options: [Proceed to review] / [Request changes] / [Skip review and approve as-is].
 
-### Phase 3: Architect Pass
-6. **Delegate to architect**:
+### Phase 3: Architect Pass + Performance Analysis (parallel)
+6. **Delegate to architect and performance-analyst in a single parallel batch** (both Task calls issued in the same message):
    ```
-   Task(
-     subagent_type="architect",
-     prompt="Review the following plan. Provide:
-     1. The strongest steelman antithesis (best argument AGAINST the chosen option).
-     2. At least one real tradeoff tension that the plan glosses over.
-     3. Synthesis when possible — how to integrate the antithesis without abandoning the plan.
-     {deliberate ? 4. Explicit flags for any principle violations.}
+   [
+     Task(
+       subagent_type="architect",
+       prompt="Review the following plan. Provide:
+       1. The strongest steelman antithesis (best argument AGAINST the chosen option).
+       2. At least one real tradeoff tension that the plan glosses over.
+       3. Synthesis when possible — how to integrate the antithesis without abandoning the plan.
+       {deliberate ? 4. Explicit flags for any principle violations.}
 
-     <draft plan content>"
-   )
+       <draft plan content>"
+     ),
+     Task(
+       subagent_type="performance-analyst",
+       prompt="Performance review of the following plan using Hotpath / Complexity / IO / Memory / Cache categories. Return Findings as a list, each with: severity, category, location, evidence, recommendation, confidence. If zero findings, set zero_findings_note: 'no concerns at this confidence'.
+
+       <draft plan content>"
+     )
+   ]
    ```
-7. **Wait for Architect output**. Do not start Critic until Architect returns.
+7. **Wait for ALL Phase 3 outputs** (architect + performance-analyst). Do not start Critic until both return.
 
 ### Phase 4: Critic Pass
-8. **Delegate to critic** (only after Step 7 completes):
+8. **Delegate to critic** (only after ALL Step 7 outputs return):
    ```
    Task(
      subagent_type="critic",
-     prompt="Evaluate the plan + architect feedback. Enforce:
+     prompt="Evaluate the plan + architect feedback + performance findings. Enforce:
      - Principle-option consistency (chosen option respects stated principles).
      - Fair alternatives (every option got honest pros/cons).
      - Risk mitigation clarity (named risks have named mitigations).
@@ -116,8 +126,17 @@ Examples:
      - {deliberate ? Pre-mortem and expanded test plan must be present and non-trivial.}
 
      Return verdict: APPROVE / ITERATE / REJECT with explicit reasoning.
+     Note: you are the sole verdict owner — performance-analyst findings are advisory input only.
 
-     <plan + architect feedback>"
+     <plan>
+     <plan content>
+     </plan>
+
+     ## Architect feedback
+     <architect output>
+
+     ## Performance findings (from performance-analyst)
+     <performance-analyst output>"
    )
    ```
 
@@ -217,7 +236,7 @@ Examples:
 - **Read**: load `.specs/<slug>/spec.md` if `--from-spec` is set; read sibling code only when the plan needs file:line anchors for Acceptance Criteria.
 - **Write**: emit `.specs/<slug>/plan.md` (and create the directory if missing). This is the ONLY mutation allowed by this skill.
 - **Bash**: create the `.specs/<slug>/` directory if missing (`mkdir -p`). No other mutating Bash.
-- **Task**: delegate to `architect` (Step 6) and `critic` (Step 8). Sequential — never parallel.
+- **Task**: delegate to `architect` and `performance-analyst` in a single parallel batch (Step 6), then to `critic` (Step 8) after both Phase 3 outputs return. Phase 3 → Phase 4 is always sequential.
 - **AskUserQuestion**: only when `--interactive` is set (draft review + final approval).
 - Do NOT delegate to `executor`, `ralph`, `team`, `autopilot` — this skill is planning-only.
 </Tool_Usage>
@@ -240,7 +259,7 @@ Flow: 5 iterations, Critic still ITERATE on iteration 5 → write plan with `Sta
 - Did I parse `--interactive` / `--deliberate` / `--lang` / `--from-spec` correctly?
 - Did the draft include all required sections (Decision / Drivers / Principles / Options / Chosen / Consequences / AC / Follow-ups)?
 - If deliberate: did I include Pre-mortem (3 scenarios) and expanded Test Plan?
-- Did Architect run BEFORE Critic (no parallel batching)?
+- Did architect + performance-analyst run in parallel (Phase 3), and did both complete before Critic started (Phase 4)?
 - Did I respect the 5-iteration cap?
 - Did the final artifact land at `.specs/<slug>/plan.md`?
 - Is the `Status` line `pending approval` (or `best-effort consensus not reached`)?

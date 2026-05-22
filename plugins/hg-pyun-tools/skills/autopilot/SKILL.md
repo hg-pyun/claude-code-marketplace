@@ -53,7 +53,12 @@ Auto commit/PR prohibition matches `ralph` and `team`. The marketplace's `git-co
 - Phase 2 fails (ralplan consensus not reached after 5 iterations) → stop with status `PHASE2_NO_CONSENSUS`.
 - Phase 3 fails (ralph / team escalates to architect or hits hard cap) → stop with status `PHASE3_BLOCKED`.
 - Phase 4 fails (same QA error persists 3 cycles) → stop with status `PHASE4_QA_STUCK`; fundamental issue requires human input.
-- Phase 5 fails (any of architect / critic / reviewer returns REJECT at HIGH confidence) → return to Phase 3 with the findings; max 2 Phase 5 retries.
+- Phase 5 fails (any Hard block or Soft block condition — see Phase 5 stratified verdict below) → return to Phase 3 with the findings; max 2 Phase 5 retries.
+
+**Phase 5 stratified verdict (6-advisor)**:
+- **Hard block (REJECT)**: any of reviewer / architect / critic / security-auditor returns REJECT, or any of those 4 advisors returns at least one CRITICAL finding at HIGH confidence → re-entry to Phase 3.
+- **Soft block (REVISE)**: doc-writer returns CRITICAL/MAJOR at HIGH confidence in the `Missing` or `Inconsistent` category (non-doc artifact), or performance-analyst returns CRITICAL at HIGH confidence in `Hotpath` or `Complexity` → re-entry to Phase 3.
+- **Annotation only**: doc-writer findings limited to `Outdated` or `Unclear`, or performance-analyst findings of MAJOR or below in `IO`, `Memory`, or `Cache` → recorded in `autopilot-validation.md` but no Phase 3 re-entry.
 
 **Auto commit/PR PROHIBITED**: same rule as ralph / team. Never invoke `git-commit`, `github-pr`, `gh pr`, `git commit`, `git push`.
 
@@ -111,7 +116,7 @@ Examples:
    - Phase 2: Planning (ralplan)         — {skip ? "SKIPPED: plan.md exists" : "RUN"}
    - Phase 3: Execution ({ralph or team})
    - Phase 4: QA (test-engineer, max {max-qa-cycles} cycles)
-   - Phase 5: Validation (architect + critic + reviewer)
+   - Phase 5: Validation (architect + critic + reviewer + security-auditor + performance-analyst + doc-writer)
    - Stop: ready for commit (commit/PR is your call)
    ```
 
@@ -171,7 +176,7 @@ Examples:
 20. **Update progress.txt** with QA cycle summary.
 
 ### Phase 5: Validation (multi-perspective)
-21. **Fire 3 perspectives in parallel** (single message, 3 Task calls):
+21. **Fire 6 perspectives in parallel** (single message, 6 Task calls):
     ```
     [
       Task(subagent_type="architect", prompt="Full-system architectural review of the changes.
@@ -180,13 +185,17 @@ Examples:
         the chosen implementation. Identify principle-option inconsistencies and missed alternatives.
         Files changed: <list>."),
       Task(subagent_type="reviewer", prompt="Severity-rated diff review. Confirm spec compliance
-        (against .specs/<slug>/spec.md) and code quality. Return CRITICAL/MAJOR/MINOR with confidence.")
+        (against .specs/<slug>/spec.md) and code quality. Return CRITICAL/MAJOR/MINOR with confidence."),
+      Task(subagent_type="security-auditor", prompt="Security-focused review using AuthN/AuthZ/Secret/Crypto/Injection/SAST/Config categories. Return Findings with severity, location, evidence, confidence."),
+      Task(subagent_type="performance-analyst", prompt="Performance review using Hotpath/Complexity/IO/Memory/Cache categories. Return Findings."),
+      Task(subagent_type="doc-writer", prompt="Do not call Write/Edit during this invocation. Return diff-shaped recommendations only. Documentation review using Missing/Outdated/Inconsistent/Unclear categories. Return Findings.")
     ]
     ```
-22. **Combine verdicts**:
-    - All approve / non-blocking → proceed to Phase 6.
-    - Any REJECT or CRITICAL at HIGH confidence → return to Phase 3 with the findings. Max 2 Phase 5 retries.
-23. **Write validation summary** to `.specs/<slug>/autopilot-validation.md` with all 3 perspectives consolidated.
+22. **Combine verdicts** using the Phase 5 stratified verdict rule (defined in `<Execution_Policy>`):
+    - Hard block → return to Phase 3 with the findings. Max 2 Phase 5 retries.
+    - Soft block → return to Phase 3 with the findings. Max 2 Phase 5 retries.
+    - Annotation only → record in `autopilot-validation.md`; proceed to Phase 6.
+23. **Write validation summary** to `.specs/<slug>/autopilot-validation.md` with all 6 perspectives consolidated, including Annotation-only findings.
 
 ### Phase 6: Report and Stop
 24. **Compose final report** in `$LANGUAGE`:
@@ -207,7 +216,7 @@ Examples:
 - **Write**: copy/link Phase 1 spec to `.specs/<slug>/spec.md`; write `autopilot-validation.md` consolidating Phase 5 verdicts; append `progress.txt`.
 - **Bash**: `mkdir -p .specs/<slug>/`, run test/build/lint between phases for verification.
 - **Skill**: invoke `hg-pyun-tools:deep-interview` (Phase 1), `hg-pyun-tools:ralplan` (Phase 2), `hg-pyun-tools:ralph` or `hg-pyun-tools:team` (Phase 3). One sub-skill per phase; sequential.
-- **Task**: delegate to `test-engineer` (Phase 4), and to `architect` + `critic` + `reviewer` in parallel (Phase 5). Also to `executor` for Phase 4 Green steps when new Red tests are authored.
+- **Task**: delegate to `test-engineer` (Phase 4), and to `architect` + `critic` + `reviewer` + `security-auditor` + `performance-analyst` + `doc-writer` in parallel (Phase 5). Also to `executor` for Phase 4 Green steps when new Red tests are authored.
 - **AskUserQuestion**: confirm smart shortcuts at Phase 0; ask about retries at phase failure points.
 - Do NOT invoke `git-commit`, `github-pr`, `enrich-ticket` from inside autopilot.
 </Tool_Usage>
@@ -221,7 +230,7 @@ Flow:
 - Phase 2: ralplan runs → consensus on iteration 2 → `.specs/linear-webhook/plan.md` (pending approval). plan.md has 4 ACs that translate cleanly to 4 stories with some shared file scope → choose `ralph` for Phase 3.
 - Phase 3: ralph runs → 4 stories complete → reviewer APPROVE → cleanup → regression GREEN.
 - Phase 4: test-engineer audits → 2 HIGH gaps → authored 2 Red tests → executor Green → regression PASS → exit Phase 4 in cycle 1.
-- Phase 5: architect + critic + reviewer fire in parallel → all clean.
+- Phase 5: architect + critic + reviewer + security-auditor + performance-analyst + doc-writer fire in parallel → all clean / annotation-only findings recorded.
 - Phase 6: report "Ready for commit. Suggest /git-commit then /github-pr." STOP.
 
 **Example 2 — smart shortcut: resume from existing plan.md**:
@@ -249,8 +258,9 @@ Autopilot routes back to Phase 3 with the finding. ralph adjusts 1 story to eval
 - For Phase 3: did I auto-select ralph vs team based on plan.md parallelism (unless `--exec` forced it)?
 - For Phase 4: did test-engineer actually author new Red tests and did executor Green them?
 - Did Phase 4 stop on 3 same-error cycles instead of grinding?
-- For Phase 5: did architect + critic + reviewer fire in parallel (one message, three Task calls)?
-- Did I write `.specs/<slug>/autopilot-validation.md` consolidating Phase 5 verdicts?
+- For Phase 5: did architect + critic + reviewer + security-auditor + performance-analyst + doc-writer fire in parallel (one message, six Task calls)?
+- Did I apply the Phase 5 stratified verdict rule (Hard block / Soft block / Annotation only) correctly?
+- Did I write `.specs/<slug>/autopilot-validation.md` consolidating all 6 Phase 5 perspectives?
 - Did I refrain from running git/gh mutations?
 - Did the final report list all phases with their status (RUN / SKIPPED / FAILED)?
 - Did the final report suggest `/git-commit` and `/github-pr` as next steps without invoking them?
@@ -275,7 +285,7 @@ Autopilot routes back to Phase 3 with the finding. ralph adjusts 1 story to eval
 | 2 Planning  | `ralplan`        | spec.md | `.specs/<slug>/plan.md` | plan.md Status valid |
 | 3 Execution | `ralph` or `team` | plan.md | `prd.json` + code changes + `progress.txt`/`team-final.md` | prd all-passes + reviewer APPROVE |
 | 4 QA        | `test-engineer` (+ `executor` Green) | code changes | new tests in repo | no HIGH/MEDIUM gaps |
-| 5 Validation | `architect`+`critic`+`reviewer` (parallel) | code changes | `.specs/<slug>/autopilot-validation.md` | all approve |
+| 5 Validation | `architect`+`critic`+`reviewer`+`security-auditor`+`performance-analyst`+`doc-writer` (parallel) | code changes | `.specs/<slug>/autopilot-validation.md` | all approve / Annotation only |
 
 ## Execution Path Auto-Detection (Phase 3)
 Heuristic for choosing `ralph` vs `team`:
@@ -285,10 +295,10 @@ Heuristic for choosing `ralph` vs `team`:
 - Always announce the choice + the parsed reasoning to the user before invoking.
 
 ## Phase 5 Parallelism Note
-Phase 5 is the one place in this skill family where `architect` + `critic` + `reviewer` run in parallel against the same artifact. This is safe because:
-- Each agent is read-only.
-- Verdicts are evaluated independently.
-- The autopilot combines verdicts after all three return.
+Phase 5 is the one place in this skill family where `architect` + `critic` + `reviewer` + `security-auditor` + `performance-analyst` + `doc-writer` run in parallel against the same artifact. This is safe because:
+- Each agent is read-only at calling time. doc-writer is the exception: it has Write/Edit at the agent level but is gated to read-only by the skill prompt for this invocation ("Do not call Write/Edit during this invocation. Return diff-shaped recommendations only.").
+- Verdicts are evaluated independently and combined per the Phase 5 stratified rule (Hard block / Soft block / Annotation only).
+- The autopilot combines verdicts after all six return.
 
 This is NOT a general license to parallelize advisor agents elsewhere — it works here specifically because the artifact is final code, not a moving target.
 
