@@ -24,7 +24,7 @@ Personal Claude Code plugin marketplace (`hg-pyun-plugins`). After the 2026-05-2
 
 ## Plugin
 
-- [hg-pyun-tools](plugins/hg-pyun-tools/README.md) — Unified toolkit: shared `reviewer`/`explorer`/`architect`/`critic` agents + `/git-commit`, `/github-pr`, `/git-rebase-stack`, `/enrich-ticket`, `/deep-interview`, `/curl-debug`, `/code-review`, `/core-verify`.
+- [hg-pyun-tools](plugins/hg-pyun-tools/README.md) — Unified toolkit: shared `reviewer`/`explorer`/`architect`/`critic` agents + `/git-commit`, `/github-pr`, `/git-rebase-stack`, `/enrich-ticket`, `/deep-interview`, `/curl-debug`, `/code-review`.
 
 See [SPEC.md](SPEC.md) for architecture, directory structure, and design decisions.
 

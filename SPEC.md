@@ -13,7 +13,7 @@ A static GitHub repository for the Claude Code plugin marketplace. Personal use 
 
 | Plugin | Purpose | Key entrypoints |
 |--------|---------|-----------------|
-| **hg-pyun-tools** | Unified toolkit — shared `reviewer`/`explorer`/`architect`/`critic` agents plus git+GitHub workflows, Linear ticket enrichment, deep-interview planning, cURL debugging, and code review/verify skills. | `/git-commit`, `/github-pr [--draft]`, `/git-rebase-stack`, `/enrich-ticket <url>`, `/deep-interview [topic]`, `/curl-debug <cURL>`, `/code-review`, `/core-verify`, `Task(subagent_type="reviewer"|"explorer"|"architect"|"critic")` |
+| **hg-pyun-tools** | Unified toolkit — shared `reviewer`/`explorer`/`architect`/`critic` agents plus git+GitHub workflows, Linear ticket enrichment, deep-interview planning, cURL debugging, and code review skill. | `/git-commit`, `/github-pr [--draft]`, `/git-rebase-stack`, `/enrich-ticket <url>`, `/deep-interview [topic]`, `/curl-debug <cURL>`, `/code-review`, `Task(subagent_type="reviewer"|"explorer"|"architect"|"critic")` |
 
 ## Architecture
 
@@ -65,7 +65,6 @@ claude-code-marketplace/
 │       │   └── deep-interview.md
 │       ├── skills/
 │       │   ├── code-review/SKILL.md
-│       │   ├── core-verify/SKILL.md
 │       │   ├── git-commit/SKILL.md
 │       │   ├── git-commit/references/conventional-commit.md
 │       │   ├── github-pr/SKILL.md
@@ -194,7 +193,7 @@ The marketplace today contains a single bundled plugin. If a future addition war
 | `commands/deep-interview.md` | Interview questions + spec document body | Yes |
 | `commands/git-rebase-stack.md` | n/a — always Korean per marketplace SPEC | n/a |
 | `skills/curl-debug/SKILL.md` | n/a — no language-dependent artifact | n/a |
-| `skills/code-review/SKILL.md`, `skills/core-verify/SKILL.md` | n/a — output uses the calling session's language | n/a |
+| `skills/code-review/SKILL.md` | n/a — output uses the calling session's language | n/a |
 | `agents/*.md` | n/a — output uses the calling session's language | n/a |
 
 ### Language presets and custom values
@@ -207,7 +206,7 @@ The 2026-05-22.1 consolidation merged the prior five-plugin catalog (`core`, `de
 
 - One install path instead of five — `/plugin install hg-pyun-tools@hg-pyun-plugins`.
 - `core:<agent>` invocation prefix removed across all skills and commands — agents are invoked as `subagent_type="<agent>"`.
-- Missing-`core` fallback contract removed from `code-review`, `core-verify`, and `curl-debug` (no longer applicable inside a single bundled plugin).
+- Missing-`core` fallback contract removed from `code-review` and `curl-debug` (no longer applicable inside a single bundled plugin).
 - Marketplace metadata version bumped from `2026.05.22` → `2026.05.22.1` to reflect the catalog change.
 
 The 2026-05-22 overhaul that preceded this consolidation (removal of unused plugins, addition of the shared `core` plugin, 9-section house style) remains the source of the current per-asset structure.
