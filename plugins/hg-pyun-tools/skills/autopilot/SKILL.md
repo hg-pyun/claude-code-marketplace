@@ -125,36 +125,35 @@ Examples:
    ```
    Skill("hg-pyun-tools:deep-interview", args="<idea> --threshold=<value>")
    ```
-7. **Wait for completion**. Read `.specs/deep-interview-<slug>.md`.
+7. **Wait for completion**. Read `.specs/<slug>/spec.md`.
 8. **Verify success**: confirm `Status: PASSED` (not `EARLY_EXIT` or `HARD_CAP` unless user accepts).
-9. **Link / rename** the spec to `.specs/<slug>/spec.md` (write a copy or symlink-like Read+Write).
-10. **On failure**: if `Status` is `EARLY_EXIT` or `HARD_CAP` with high residual ambiguity, ask user via `AskUserQuestion` whether to retry, lower threshold, or abort.
+9. **On failure**: if `Status` is `EARLY_EXIT` or `HARD_CAP` with high residual ambiguity, ask user via `AskUserQuestion` whether to retry, lower threshold, or abort.
 
 ### Phase 2: Planning (ralplan)
-11. **If not skipped**:
+10. **If not skipped**:
     ```
     Skill("hg-pyun-tools:ralplan", args="--from-spec=.specs/<slug>/spec.md {--deliberate if set}")
     ```
-12. **Wait for completion**. Read `.specs/<slug>/plan.md`.
-13. **Verify Status**: must be `pending approval` (not `best-effort consensus not reached`). If consensus was not reached, ask user whether to accept best-effort or restart Phase 2.
+11. **Wait for completion**. Read `.specs/<slug>/plan.md`.
+12. **Verify Status**: must be `pending approval` (not `best-effort consensus not reached`). If consensus was not reached, ask user whether to accept best-effort or restart Phase 2.
 
 ### Phase 3: Execution (ralph or team)
-14. **Choose path**:
+13. **Choose path**:
     - If `--exec` flag set, use it.
     - Else: parse `plan.md` Consequences/Follow-ups + Acceptance Criteria. If ≥ 3 independent workstreams with no file overlap → `team`. Else → `ralph`.
     - Announce the choice and the rationale.
-15. **Invoke**:
+14. **Invoke**:
     ```
     Skill("hg-pyun-tools:ralph", args="--from-plan=.specs/<slug>/plan.md")
     // OR
     Skill("hg-pyun-tools:team", args="--from-plan=.specs/<slug>/plan.md")
     ```
-16. **Wait for completion**. Read `.specs/<slug>/prd.json` and the latest `progress.txt` or `team-final.md`.
-17. **Verify success**: all stories `passes: true`, reviewer / critic APPROVE, post-cleanup regression GREEN.
-18. **On failure**: capture the blocking status and stop with the matching Phase 3 status (e.g., `PHASE3_BLOCKED`).
+15. **Wait for completion**. Read `.specs/<slug>/prd.json` and the latest `progress.txt` or `team-final.md`.
+16. **Verify success**: all stories `passes: true`, reviewer / critic APPROVE, post-cleanup regression GREEN.
+17. **On failure**: capture the blocking status and stop with the matching Phase 3 status (e.g., `PHASE3_BLOCKED`).
 
 ### Phase 4: QA (test-engineer cycles, max --max-qa-cycles)
-19. **Iteration loop** (default 5 cycles):
+18. **Iteration loop** (default 5 cycles):
     a. **Delegate test hardening**:
        ```
        Task(
@@ -173,10 +172,10 @@ Examples:
        ```
     c. **Re-run regression**. If GREEN and no new HIGH/MEDIUM gaps reported → exit Phase 4.
     d. **If same error persists 3 cycles in a row** → stop with `PHASE4_QA_STUCK`.
-20. **Update progress.txt** with QA cycle summary.
+19. **Update progress.txt** with QA cycle summary.
 
 ### Phase 5: Validation (multi-perspective)
-21. **Fire 6 perspectives in parallel** (single message, 6 Task calls):
+20. **Fire 6 perspectives in parallel** (single message, 6 Task calls):
     ```
     [
       Task(subagent_type="architect", prompt="Full-system architectural review of the changes.
@@ -191,14 +190,14 @@ Examples:
       Task(subagent_type="doc-writer", prompt="Do not call Write/Edit during this invocation. Return diff-shaped recommendations only. Documentation review using Missing/Outdated/Inconsistent/Unclear categories. Return Findings.")
     ]
     ```
-22. **Combine verdicts** using the Phase 5 stratified verdict rule (defined in `<Execution_Policy>`):
+21. **Combine verdicts** using the Phase 5 stratified verdict rule (defined in `<Execution_Policy>`):
     - Hard block → return to Phase 3 with the findings. Max 2 Phase 5 retries.
     - Soft block → return to Phase 3 with the findings. Max 2 Phase 5 retries.
     - Annotation only → record in `autopilot-validation.md`; proceed to Phase 6.
-23. **Write validation summary** to `.specs/<slug>/autopilot-validation.md` with all 6 perspectives consolidated, including Annotation-only findings.
+22. **Write validation summary** to `.specs/<slug>/autopilot-validation.md` with all 6 perspectives consolidated, including Annotation-only findings.
 
 ### Phase 6: Report and Stop
-24. **Compose final report** in `$LANGUAGE`:
+23. **Compose final report** in `$LANGUAGE`:
     - Phases completed: 1→2→3→4→5 (with SKIPPED markers where applicable)
     - Artifacts produced: list with paths
     - Stories total / completed
@@ -206,14 +205,14 @@ Examples:
     - Validation verdict: combined APPROVE
     - Final regression: PASS
     - **Next steps**: "Run `/git-commit` to commit" + "Run `/github-pr` to open PR" — do NOT invoke.
-25. **Append final session record** to `progress.txt` if it exists.
-26. **STOP**. Do not invoke git mutations.
+24. **Append final session record** to `progress.txt` if it exists.
+25. **STOP**. Do not invoke git mutations.
 
 </Steps>
 
 <Tool_Usage>
 - **Read**: load `.specs/<slug>/*.md`, `prd.json`, sub-skill outputs.
-- **Write**: copy/link Phase 1 spec to `.specs/<slug>/spec.md`; write `autopilot-validation.md` consolidating Phase 5 verdicts; append `progress.txt`.
+- **Write**: write `autopilot-validation.md` consolidating Phase 5 verdicts; append `progress.txt`.
 - **Bash**: `mkdir -p .specs/<slug>/`, run test/build/lint between phases for verification.
 - **Skill**: invoke `hg-pyun-tools:deep-interview` (Phase 1), `hg-pyun-tools:ralplan` (Phase 2), `hg-pyun-tools:ralph` or `hg-pyun-tools:team` (Phase 3). One sub-skill per phase; sequential.
 - **Task**: delegate to `test-engineer` (Phase 4), and to `architect` + `critic` + `reviewer` + `security-auditor` + `performance-analyst` + `doc-writer` in parallel (Phase 5). Also to `executor` for Phase 4 Green steps when new Red tests are authored.

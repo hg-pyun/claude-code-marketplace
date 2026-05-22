@@ -23,7 +23,7 @@ Unified Claude Code toolkit by hg-pyun. Bundles shared review/exploration/archit
 | `/github-pr [--draft]`, "PR 만들어줘", "create a PR" | skill | Detects the base branch, pushes if needed, drafts a conventional-commit-style PR title + body in `$LANGUAGE`, creates the PR via GitHub MCP. |
 | `/git-rebase-stack [base-or-intent]`, "stack 정리해줘" | command | Detects stack topology, plans the rebase, executes `git rebase --onto --update-refs`, optionally pushes. |
 | `/enrich-ticket <url> [--lang=<value>]`, "이 티켓 채워줘" | command | Reads a Linear ticket + comments, interviews the user to fill missing rubric sections, writes the enriched body back via Linear MCP. |
-| `/deep-interview [topic] [--lang=<value>] [--threshold=<0.0-1.0>] [--max-rounds=<n>]`, "스펙 잡아줘", "deep interview" | skill | Socratic interview with mathematical ambiguity gating (default threshold 0.2). Round 0 topology lock, per-round clarity scoring, challenge agents (Contrarian/Simplifier/Ontologist), brownfield codebase pre-exploration via `explorer`. Produces a spec at `.specs/deep-interview-<slug>.md`. |
+| `/deep-interview [topic] [--lang=<value>] [--threshold=<0.0-1.0>] [--max-rounds=<n>]`, "스펙 잡아줘", "deep interview" | skill | Socratic interview with mathematical ambiguity gating (default threshold 0.2). Round 0 topology lock, per-round clarity scoring, challenge agents (Contrarian/Simplifier/Ontologist), brownfield codebase pre-exploration via `explorer`. Produces a spec at `.specs/<slug>/spec.md`. |
 | `/curl-debug <cURL>`, "이 curl 500 에러 나는데" | skill | Runs the cURL, reverse-traces from signal (stack trace > error message > error code > URL path > body shape) to source code, reports root cause with file:line evidence. |
 | `/code-review`, "코드 리뷰 해줘" | skill | Delegates the current diff (or a named file) to the `reviewer` agent and presents CRITICAL/MAJOR/MINOR findings. |
 | `/ralplan [--interactive] [--deliberate] [--from-spec=<path>]`, "ralplan", "합의 계획 잡아줘" | skill | Consensus planning: drafts an ADR plan, runs Architect → Critic loop (max 5 iter), writes `.specs/<slug>/plan.md` marked `pending approval`. Planning-only — never executes. |
@@ -69,6 +69,30 @@ deep-interview  →  ralplan  →  ralph    →  test-engineer  →  architect+c
 Or, when independent workstreams exist, swap `ralph` for `team` (5-stage parallel pipeline).
 
 `autopilot` is the conductor that wires all of the above into a single invocation with smart-skip logic for resumption. All four skills land their artifacts under `.specs/<slug>/` and explicitly stop at "ready for commit" — commit and PR creation remain user-triggered via `/git-commit` and `/github-pr`.
+
+## `.specs/<slug>/` Output Convention
+
+All skills in this plugin write their artifacts under `.specs/<slug>/` using fixed artifact names:
+
+| Artifact | Written by | Description |
+|----------|-----------|-------------|
+| `spec.md` | `deep-interview` | Structured requirements spec from Socratic interview |
+| `plan.md` | `ralplan` | Consensus ADR with acceptance criteria, marked `pending approval` |
+| `prd.json` | `ralph` / `team` | Story list with `passes` flags for TDD tracking |
+| `progress.txt` | `ralph` / `team` / `autopilot` | Running execution log, QA cycle summaries |
+| `team-final.md` | `team` | Stage 5 parallel execution summary |
+| `autopilot-validation.md` | `autopilot` Phase 5 | Consolidated 6-advisor validation verdicts |
+
+### Migration guide
+
+If you have existing spec files written by a previous version of `deep-interview` (stored as a flat `.md` file directly under `.specs/`), move them to the new sub-directory layout before re-invoking `/autopilot`. For a slug named `MY_SLUG`:
+
+```sh
+mkdir -p .specs/MY_SLUG
+mv ".specs/$(SLUG).md" ".specs/MY_SLUG/spec.md"
+```
+
+**autopilot Phase 1 skip side-effect**: autopilot checks for `.specs/<slug>/spec.md` to decide whether to skip Phase 1 (re-running deep-interview). If the file is missing at the new path, Phase 1 will re-run even if you already completed an interview under the old path. Use the `mv` command above to preserve the skip behavior.
 
 ## Settings
 

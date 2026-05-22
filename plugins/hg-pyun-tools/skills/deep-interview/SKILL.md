@@ -5,7 +5,7 @@ description: >
   agents. Surfaces hidden assumptions, scores clarity per dimension
   (Goal/Constraints/Criteria/Context), and refuses to hand off until ambiguity
   drops below the configured threshold. Produces a structured spec at
-  `.specs/deep-interview-<slug>.md` in `$LANGUAGE`.
+  `.specs/<slug>/spec.md` in `$LANGUAGE`.
   TRIGGER when: user wants thorough requirements gathering before any coding,
   says "스펙 잡아줘", "deep interview", "심층 인터뷰", "ouroboros",
   "socratic", "interview me", "ask me everything", "don't assume", or invokes
@@ -18,7 +18,7 @@ argument-hint: "[brief idea] [--lang=<value>] [--threshold=<0.0-1.0>] [--max-rou
 ---
 
 <Purpose>
-Interview the user in `$LANGUAGE` to capture requirements for a new project, feature, or change using Socratic questioning with mathematical ambiguity scoring. Ask one question at a time, target the weakest clarity dimension each round, activate challenge agents (Contrarian/Simplifier/Ontologist) at preset thresholds, and refuse to finalize the spec until ambiguity ≤ threshold (default 0.2) OR the user explicitly opts out with a warning. Output is a structured spec document at `.specs/deep-interview-<slug>.md`. This skill does NOT implement code — it produces the spec only.
+Interview the user in `$LANGUAGE` to capture requirements for a new project, feature, or change using Socratic questioning with mathematical ambiguity scoring. Ask one question at a time, target the weakest clarity dimension each round, activate challenge agents (Contrarian/Simplifier/Ontologist) at preset thresholds, and refuse to finalize the spec until ambiguity ≤ threshold (default 0.2) OR the user explicitly opts out with a warning. Output is a structured spec document at `.specs/<slug>/spec.md`. This skill does NOT implement code — it produces the spec only.
 </Purpose>
 
 <Use_When>
@@ -64,7 +64,7 @@ Inspired by the [Ouroboros project](https://github.com/Q00/ouroboros), which dem
 - Allow early exit at round 3+ with a transparent warning showing remaining gaps.
 - Soft warning at round 10; hard cap at round 20.
 - Do not implement code in this skill — produce the spec only.
-- Write the final spec to `.specs/deep-interview-<slug>.md` (create `.specs/` if missing).
+- Write the final spec to `.specs/<slug>/spec.md` (create `.specs/<slug>/` if missing).
 </Execution_Policy>
 
 <Settings_Reference>
@@ -228,7 +228,7 @@ After the mode is used, return to normal Socratic questioning.
 When ambiguity ≤ threshold OR hard cap reached OR early exit chosen:
 
 1. **Slugify** the title for the filename.
-2. **Write** the spec to `.specs/deep-interview-<slug>.md` (create `.specs/` if missing).
+2. **Write** the spec to `.specs/<slug>/spec.md` (create `.specs/<slug>/` if missing).
 3. **Show** the user the absolute path of the written file.
 
 Spec structure (headers stay English; content in `$LANGUAGE`):
@@ -320,15 +320,15 @@ Spec structure (headers stay English; content in `$LANGUAGE`):
 <Tool_Usage>
 - `AskUserQuestion` for every interview question — one per turn, with contextual options + free-text.
 - `Task(subagent_type="explorer", prompt="…")` for brownfield codebase exploration (run BEFORE asking the user about codebase facts).
-- `Bash` only to create the `.specs/` directory if missing.
-- `Write` to save the final spec to `.specs/deep-interview-<slug>.md`.
+- `Bash` only to create the slug directory if missing: `mkdir -p .specs/<slug>/`.
+- `Write` to save the final spec to `.specs/<slug>/spec.md`.
 - Do NOT delegate execution from this skill. Producing the spec is the terminal step.
 </Tool_Usage>
 
 <Examples>
 **Example 1 — fresh greenfield idea:**
 User: "스펙 잡아줘 — Linear webhook 처리 서비스"
-Flow: Phase 0 emits threshold marker → restate idea → Round 0 topology (Ingestion / Routing / Persistence / Replay confirmed) → 7–10 Korean questions rotating across components → Contrarian @ R4 challenges "must process in real-time" → Simplifier @ R6 → ambiguity drops to 18% → write `.specs/deep-interview-linear-webhook.md` → show path.
+Flow: Phase 0 emits threshold marker → restate idea → Round 0 topology (Ingestion / Routing / Persistence / Replay confirmed) → 7–10 Korean questions rotating across components → Contrarian @ R4 challenges "must process in real-time" → Simplifier @ R6 → ambiguity drops to 18% → write `.specs/linear-webhook/spec.md` → show path.
 
 **Example 2 — brownfield with explorer:**
 User: "/deep-interview '인증 미들웨어 리팩터'"
@@ -336,7 +336,7 @@ Flow: `explorer` finds `src/auth/passport-jwt.ts` (pattern: passport + JWT) → 
 
 **Example 3 — `--lang=en` with threshold override:**
 User: "/deep-interview 'CLI habit tracker' --lang=en --threshold=0.15"
-Flow: Phase 0 emits `Deep Interview threshold: 15% (max rounds: 20)` → interview in English → spec in English at `.specs/deep-interview-cli-habit-tracker.md`.
+Flow: Phase 0 emits `Deep Interview threshold: 15% (max rounds: 20)` → interview in English → spec in English at `.specs/cli-habit-tracker/spec.md`.
 
 **Example 4 — bare invocation:**
 User: "/deep-interview"
@@ -358,7 +358,7 @@ Flow: System warns "Current ambiguity 35%, threshold 20%. Remaining gaps: Succes
 - Did I activate Contrarian @ R4, Simplifier @ R6, Ontologist @ R8 (if ambiguity > 0.3) — each exactly once?
 - Did I show the per-round clarity table and ontology row?
 - Did the final spec cover Topology / Goal / Constraints / Non-Goals / Acceptance Criteria / Technical Direction / Tradeoffs / Open Questions / Ontology / Transcript?
-- Did I write the spec to `.specs/deep-interview-<slug>.md` and show the absolute path?
+- Did I write the spec to `.specs/<slug>/spec.md` and show the absolute path?
 - Did I avoid implementing code (this skill is requirements-only)?
 </Final_Checklist>
 
