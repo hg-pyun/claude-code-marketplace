@@ -1,6 +1,6 @@
 ---
 name: ralplan
-description: Consensus planning skill. Runs Planner → Architect → Critic loop with RALPLAN-DR structured deliberation, produces an ADR at .specs/<slug>/plan.md, and marks it `pending approval`. Use when an idea or spec needs a vetted plan before execution. TRIGGER on "/ralplan", "ralplan", "plan this", "합의 계획". DO NOT TRIGGER for execution requests (those go to ralph / autopilot) or for free-form brainstorming.
+description: Consensus planning skill. Runs Architect → Performance-analyst → Critic loop with RALPLAN-DR structured deliberation, produces an ADR at .specs/<slug>/plan.md, and marks it `pending approval`. Use when an idea or spec needs a vetted plan before execution. TRIGGER on "/ralplan", "ralplan", "plan this", "합의 계획". DO NOT TRIGGER for execution requests (those go to ralph / autopilot) or for free-form brainstorming.
 ---
 
 <Purpose>
@@ -66,7 +66,7 @@ Optional task description plus flags:
 Examples:
 - `/ralplan "Linear webhook 처리 서비스"`
 - `/ralplan --interactive --deliberate "auth middleware 리팩터"`
-- `/ralplan --from-spec=.specs/deep-interview-foo.md`
+- `/ralplan --from-spec=.specs/foo/spec.md`
 </Arguments>
 
 <Steps>
@@ -243,7 +243,7 @@ Examples:
 
 <Examples>
 **Example 1 — non-interactive plan from spec**:
-User: "/ralplan --from-spec=.specs/deep-interview-linear-webhook.md"
+User: "/ralplan --from-spec=.specs/linear-webhook/spec.md"
 Flow: Read spec → draft plan → Task(architect) → wait → Task(critic) → APPROVE on iteration 2 → write `.specs/linear-webhook/plan.md` with `Status: pending approval` → report path. Stop without prompting.
 
 **Example 2 — interactive deliberate mode**:
