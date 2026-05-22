@@ -1,6 +1,6 @@
 # hg-pyun-tools
 
-Unified Claude Code toolkit by hg-pyun. Bundles shared review/exploration/architecture/critique agents alongside git+GitHub workflows, Linear ticket enrichment, deep-interview planning, and cURL debugging in a single installable plugin.
+Unified Claude Code toolkit by hg-pyun. Bundles shared review/exploration/architecture/critique/execution/test agents alongside multi-agent orchestration skills (autopilot/ralplan/ralph/team), git+GitHub workflows, Linear ticket enrichment, deep-interview planning, and cURL debugging in a single installable plugin.
 
 ## Purpose
 
@@ -27,26 +27,49 @@ Unified Claude Code toolkit by hg-pyun. Bundles shared review/exploration/archit
 | `/curl-debug <cURL>`, "이 curl 500 에러 나는데" | skill | Runs the cURL, reverse-traces from signal (stack trace > error message > error code > URL path > body shape) to source code, reports root cause with file:line evidence. |
 | `/code-review`, "코드 리뷰 해줘" | skill | Delegates the current diff (or a named file) to the `reviewer` agent and presents CRITICAL/MAJOR/MINOR findings. |
 | `/core-verify`, "검증해줘" | skill | Evidence-based PASS/FAIL on recent changes — identifies the change surface, runs the code, cites file:line evidence. |
+| `/ralplan [--interactive] [--deliberate] [--from-spec=<path>]`, "ralplan", "합의 계획 잡아줘" | skill | Consensus planning: drafts an ADR plan, runs Architect → Critic loop (max 5 iter), writes `.specs/<slug>/plan.md` marked `pending approval`. Planning-only — never executes. |
+| `/ralph [--no-deslop] [--critic=architect\|critic] [--from-plan=<path>]`, "ralph", "끝까지 가줘" | skill | PRD-driven persistence loop. Reads `.specs/<slug>/prd.json`, drives TDD (test-engineer Red → executor Green) story-by-story, runs reviewer approval + `code-review` cleanup + regression. Stops at "ready for commit" — never auto commits. |
+| `/team [--max-parallel=<n>] [--no-critic] [--from-plan=<path>]`, "team", "팀으로 진행" | skill | 5-stage parallel multi-agent orchestration (plan → prd → exec → verify → fix). Decomposes into independent stories, fires executor/test-engineer in parallel waves, runs reviewer + critic in Stage 4. Stops at "ready for commit". |
+| `/autopilot [--exec=ralph\|team] [--skip-phase1] [--skip-phase2] [--deliberate]`, "autopilot", "build me X", "만들어줘" | skill | End-to-end 5-phase pipeline. Sequences deep-interview → ralplan → (ralph or team) → test-engineer QA → architect+critic+reviewer Validation. Smart shortcuts skip phases when `.specs/<slug>/` artifacts exist. Stops at "ready for commit". |
 
 ### Agents
 
 Other skills (and this plugin's own skills) delegate to the bundled agents via the Task tool:
 
 ```
-Task(subagent_type="reviewer", prompt="...")
-Task(subagent_type="explorer", prompt="...")
-Task(subagent_type="architect", prompt="...")
-Task(subagent_type="critic",   prompt="...")
+Task(subagent_type="reviewer",      prompt="...")
+Task(subagent_type="explorer",      prompt="...")
+Task(subagent_type="architect",     prompt="...")
+Task(subagent_type="critic",        prompt="...")
+Task(subagent_type="executor",      prompt="...")
+Task(subagent_type="test-engineer", prompt="...")
 ```
 
-| Agent | Model | Role |
-|-------|-------|------|
-| reviewer | sonnet | Severity-rated review (CRITICAL/MAJOR/MINOR) of diffs or files |
-| explorer | haiku | Fast read-only search for files, symbols, patterns |
-| architect | opus | Read-only architecture and debugging advisor with file:line evidence |
-| critic | opus | Adversarial critique of plans/decisions with steelman counterarguments |
+| Agent | Model | Mutating? | Role |
+|-------|-------|-----------|------|
+| reviewer | sonnet | no | Severity-rated review (CRITICAL/MAJOR/MINOR) of diffs or files |
+| explorer | haiku | no | Fast read-only search for files, symbols, patterns |
+| architect | opus | no | Read-only architecture and debugging advisor with file:line evidence; 3-fail escalation target |
+| critic | opus | no | Adversarial critique of plans/decisions with steelman counterarguments |
+| executor | sonnet | yes | Focused code implementation. Small-correct-diff principle, TDD-first refusal, escalates to architect after 3 fails |
+| test-engineer | sonnet | yes (tests only) | TDD enforcement, failing-test authoring, coverage analysis, flaky diagnosis. Iron Law: no production code without a failing test first |
 
-All agents are READ-ONLY (`disallowedTools: Write, Edit`) and cannot mutate the repo.
+The four advisor agents (`reviewer`, `explorer`, `architect`, `critic`) are READ-ONLY (`disallowedTools: Write, Edit`) and cannot mutate the repo. `executor` and `test-engineer` author code/tests as their core responsibility.
+
+### Multi-agent orchestration
+
+The four orchestration skills compose into a full lifecycle:
+
+```
+deep-interview  →  ralplan  →  ralph    →  test-engineer  →  architect+critic+reviewer
+   (spec.md)       (plan.md)    (prd.json   (Phase 4 QA)        (Phase 5 Validation)
+                                + code +
+                                progress.txt)
+```
+
+Or, when independent workstreams exist, swap `ralph` for `team` (5-stage parallel pipeline).
+
+`autopilot` is the conductor that wires all of the above into a single invocation with smart-skip logic for resumption. All four skills land their artifacts under `.specs/<slug>/` and explicitly stop at "ready for commit" — commit and PR creation remain user-triggered via `/git-commit` and `/github-pr`.
 
 ## Settings
 
