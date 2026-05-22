@@ -34,7 +34,7 @@ Stacked PRs are powerful but error-prone to maintain by hand. `--update-refs` (i
 </Why_This_Exists>
 
 <Execution_Policy>
-- All guidance, questions, and reports must be output in Korean (this skill is exempt from the `settings.language` mechanism per the marketplace SPEC).
+- All guidance, questions, and reports must be output in Korean (this command is exempt from the `settings.language` mechanism per the marketplace SPEC).
 - **NEVER** include a `Co-Authored-By` trailer in any commit. Adding `Co-Authored-By` headers to AI-generated commits is strictly prohibited.
 - Execute git operations via `Bash`.
 - For GitHub-related lookups, prioritize GitHub MCP; fall back to `gh` CLI on failure.

@@ -1,6 +1,6 @@
 ---
 name: core-verify
-description: Evidence-based verification of recent changes via the core plugin. Use after any non-trivial change to confirm the change actually does what it should, not just that tests pass. TRIGGER when user says "verify with core", "core 검증", invokes /core-verify, or asks "did my change actually work?". DO NOT TRIGGER for unrelated work or when the user wants a different verifier they already have installed.
+description: Evidence-based verification of recent changes. Use after any non-trivial change to confirm the change actually does what it should, not just that tests pass. TRIGGER when user says "verify", "검증", invokes /core-verify, or asks "did my change actually work?". DO NOT TRIGGER for unrelated work or when the user wants a different verifier they already have installed.
 ---
 
 <Purpose>
@@ -9,7 +9,7 @@ Run an evidence-based PASS/FAIL check on the most recent changes in the reposito
 
 <Use_When>
 - A change has just landed (committed or staged) and the user wants confirmation it works
-- The user says "verify with core", "core 검증", "/core-verify", or asks "did my change work?" in a hg-pyun-plugins context
+- The user says "verify", "검증", "/core-verify", or asks "did my change work?" in a `hg-pyun-tools` context
 - Tests pass but the user wants real-world behavior evidence
 </Use_When>
 
@@ -42,7 +42,7 @@ Type checks and test suites verify correctness of code, not correctness of featu
 - Bash for git operations and running the code
 - Read for inspecting changed files
 - chrome-devtools MCP (or equivalent) for UI verification
-- Optionally delegate to `core:reviewer` via Task tool when severity-rated review of the change is also desired
+- Optionally delegate to the `reviewer` agent via Task tool when severity-rated review of the change is also desired
 </Tool_Usage>
 
 <Examples>

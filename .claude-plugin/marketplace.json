@@ -5,76 +5,36 @@
   },
   "metadata": {
     "description": "Personal Claude Code plugin marketplace by hg-pyun",
-    "version": "2026.05.22",
+    "version": "2026.05.22.1",
     "pluginRoot": "./plugins"
   },
   "plugins": [
     {
-      "name": "core",
-      "source": "./plugins/core",
-      "description": "Shared reviewer, explorer, architect, and critic agents plus verify and code-review skills for cross-plugin orchestration",
-      "version": "2026.05.22",
-      "keywords": [
-        "core",
-        "shared",
-        "reviewer",
-        "explorer",
-        "architect",
-        "critic",
-        "verify",
-        "code-review",
-        "multi-agent"
-      ]
-    },
-    {
-      "name": "debug",
-      "source": "./plugins/debug",
-      "description": "API debugging tools — execute cURL requests and reverse-trace bugs through the codebase",
-      "version": "2026.05.22",
-      "keywords": [
-        "debug",
-        "curl",
-        "api",
-        "trace",
-        "bug",
-        "reverse-trace"
-      ]
-    },
-    {
-      "name": "git",
-      "source": "./plugins/git",
-      "description": "Git and GitHub workflows for Claude Code",
+      "name": "hg-pyun-tools",
+      "source": "./plugins/hg-pyun-tools",
+      "description": "Unified Claude Code toolkit by hg-pyun — shared agents (reviewer/explorer/architect/critic), git+github workflows, Linear enrichment, deep-interview planning, and cURL debugging in a single plugin",
       "version": "2026.05.22",
       "keywords": [
         "git",
         "commit",
         "pull-request",
-        "conventional-commit",
         "rebase",
-        "stacked-pr"
-      ]
-    },
-    {
-      "name": "linear",
-      "source": "./plugins/linear",
-      "description": "Linear workflow plugin for Claude Code",
-      "version": "2026.05.22",
-      "keywords": [
+        "stacked-pr",
         "linear",
         "ticket",
-        "interview"
-      ]
-    },
-    {
-      "name": "plan",
-      "source": "./plugins/plan",
-      "description": "Automatically generates project spec documents through in-depth interviews",
-      "version": "2026.05.22",
-      "keywords": [
         "interview",
         "spec",
-        "requirements",
-        "planning"
+        "planning",
+        "debug",
+        "curl",
+        "trace",
+        "review",
+        "verify",
+        "reviewer",
+        "explorer",
+        "architect",
+        "critic",
+        "multi-agent"
       ]
     }
   ]

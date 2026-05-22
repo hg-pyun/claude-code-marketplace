@@ -41,7 +41,7 @@ Tracing an API bug from "this curl returns 500" to "this exact line in this exac
 - Trace by signal priority (table below). Stream each step as you go.
 - Halt as soon as you can answer What / Where / Why.
 - Never apply fixes — present fix options for the user to choose from.
-- For non-trivial proposed fixes, optionally delegate to `core:reviewer` for severity-rated review (see Step 4).
+- For non-trivial proposed fixes, optionally delegate to the `reviewer` agent for severity-rated review (see Step 4).
 </Execution_Policy>
 
 <Arguments>
@@ -111,24 +111,22 @@ If any of the three is unanswered, continue to the next signal priority. If all 
 3. **Bug cause** — what, where, why (the halt condition's three answers)
 4. **Fix suggestions** — concrete code change options. Each with file:line, the change, and trade-offs. **Do not apply fixes directly.**
 
-**Optional core delegation (cross-plugin wiring):** when the trace identifies a non-trivial code change and the user would benefit from a second opinion before acting, delegate severity-rated review of the proposed fix to `core` via:
+**Optional reviewer delegation:** when the trace identifies a non-trivial code change and the user would benefit from a second opinion before acting, delegate severity-rated review of the proposed fix via:
 
 ```
 Task(
-  subagent_type="core:reviewer",
+  subagent_type="reviewer",
   prompt="Review the following proposed fix for severity-rated issues:\n\n${PROPOSED_FIX_DIFF_OR_SNIPPET}"
 )
 ```
 
-**Fallback when `core` is not installed:** if the Task invocation returns an "unknown subagent" or equivalent error, skip the delegation and append a note to the report: "core plugin not installed; review delegated locally to the calling session." Detection: an explicit error matching `unknown subagent` or similar in the Task result.
-
-The cross-plugin delegation is optional — only invoke when the proposed fix is non-trivial and a review pass would be valuable.
+This delegation is optional — only invoke when the proposed fix is non-trivial and a review pass would be valuable.
 
 **Follow-up actions** (AskUserQuestion, situationally relevant):
 - **Retry with modified parameters** (always): accept changed values, re-run from Step 1
 - **View fix details** (when multiple fix options exist): show detailed code changes for a selected option
 - **Explore more code** (always): expand the call chain (callers/callees)
-- **Delegate review to core:reviewer** (when a non-trivial fix is proposed and `core` is installed)
+- **Delegate review to the reviewer agent** (when a non-trivial fix is proposed)
 - **Provide expected response** (when 2xx and no expected value given): enable diff analysis
 - **Provide server logs** (when signals 1–3 all failed): request log path/content
 - **Retry with fresh token** (on 401/403): re-run with updated auth credentials
@@ -139,7 +137,7 @@ The cross-plugin delegation is optional — only invoke when the proposed fix is
 <Tool_Usage>
 - `Bash` for executing the cURL and any follow-up shell commands
 - `Grep` + `Read` for codebase tracing
-- `Task(subagent_type="core:reviewer", ...)` (optional) when a proposed fix benefits from severity-rated review (see Step 4 cross-plugin delegation)
+- `Task(subagent_type="reviewer", ...)` (optional) when a proposed fix benefits from severity-rated review (see Step 4)
 - `AskUserQuestion` at decision points (network retry, short-circuit cases, missing info, follow-up actions)
 </Tool_Usage>
 
@@ -152,12 +150,9 @@ Flow: Step 1 runs cURL → response has stack trace (signal 1) → Read `src/ser
 User: "/curl-debug curl https://api.example.com/v2/orders/123"
 Flow: Step 1 runs → 404 → short-circuit: check route registration → grep `'/v2/orders'` → find handler registered as `/v1/orders` → report mismatch → suggest registering v2 alias.
 
-**Example 3 — non-trivial fix + core delegation:**
+**Example 3 — non-trivial fix + reviewer delegation:**
 User pastes a cURL that returns wrong data on a complex endpoint.
-Flow: Step 1-3 identify a 30-line refactor needed in `src/handlers/order.ts` → Step 4 produces fix suggestion → propose delegating review to `core:reviewer` via Task → reviewer returns severity-rated findings → user picks fix to apply.
-
-**Example 4 — missing-core fallback:**
-Same as Example 3 but `core` plugin not installed → Task invocation returns "unknown subagent" → skill skips delegation, appends fallback note → user reviews fix manually.
+Flow: Step 1-3 identify a 30-line refactor needed in `src/handlers/order.ts` → Step 4 produces fix suggestion → propose delegating review to the `reviewer` agent via Task → reviewer returns severity-rated findings → user picks fix to apply.
 </Examples>
 
 <Final_Checklist>
@@ -165,6 +160,6 @@ Same as Example 3 but `core` plugin not installed → Task invocation returns "u
 - Did I follow signal priority (highest available signal first)?
 - Did I stop at the halt condition (What / Where / Why all answered)?
 - Did I avoid applying fixes (present options only)?
-- For non-trivial fixes: did I consider delegating to `core:reviewer` and honor the fallback when `core` is missing?
+- For non-trivial fixes: did I consider delegating to the `reviewer` agent?
 - Did I cite file:line in the report?
 </Final_Checklist>

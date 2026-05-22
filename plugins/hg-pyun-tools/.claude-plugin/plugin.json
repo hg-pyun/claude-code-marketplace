@@ -1,0 +1,11 @@
+{
+  "name": "hg-pyun-tools",
+  "description": "Unified Claude Code toolkit by hg-pyun — shared agents (reviewer/explorer/architect/critic), git+github workflows, Linear enrichment, deep-interview planning, and cURL debugging in a single plugin",
+  "version": "2026.05.22",
+  "author": {
+    "name": "hg-pyun"
+  },
+  "settings": {
+    "language": "Korean"
+  }
+}

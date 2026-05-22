@@ -1,8 +1,0 @@
-{
-  "name": "debug",
-  "description": "API debugging tools — execute cURL requests and reverse-trace bugs through the codebase",
-  "version": "2026.05.22",
-  "author": {
-    "name": "hg-pyun"
-  }
-}

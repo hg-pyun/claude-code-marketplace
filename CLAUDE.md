@@ -57,31 +57,18 @@ Every `plugins/<name>/.claude-plugin/plugin.json` MUST include an `author` field
 
 String form (`"author": "hg-pyun"`) is rejected by `claude plugin validate --strict` with `expected object, received string`. The object form passes both default and strict validation. Add `email` or other fields to the object as needed.
 
-## `core` Plugin Invocation Convention
+## Agent Invocation Convention
 
-The `core` plugin contains shared cross-plugin agents (`reviewer`, `explorer`, `architect`, `critic`) and skills (`core-verify`, `code-review`). Other plugins delegate to these via the Task tool:
+The `hg-pyun-tools` plugin bundles shared agents (`reviewer`, `explorer`, `architect`, `critic`) and skills (`core-verify`, `code-review`) alongside its commands. Other skills and commands delegate to the bundled agents via the Task tool:
 
 ```
 Task(
-  subagent_type="core:reviewer",
+  subagent_type="reviewer",
   prompt="<diff or content to review>"
 )
 ```
 
-The subagent_type form is `<plugin-name>:<agent-name>` — `core` is the plugin name (the `hg-pyun-plugins` marketplace is its container).
-
-### Fallback when `core` is not installed
-
-Plugins that delegate to `core` MUST handle the missing-`core` case gracefully:
-
-```
-Detection: Task invocation returns "unknown subagent" or equivalent error.
-Action: perform the operation inline with equivalent behavior.
-Output: append "core plugin not installed; <skill> performed locally"
-        to the user-visible summary.
-```
-
-This contract preserves graceful degradation when a user installs only some plugins from the marketplace.
+`subagent_type` is the bare agent name — no plugin prefix because everything ships in one plugin. The previous `core:<agent>` form and missing-`core` fallback contract were removed in the 2026-05-22.1 consolidation.
 
 ## 9-section SKILL.md House Style
 
@@ -99,9 +86,9 @@ Every `plugins/<plugin>/skills/<skill>/SKILL.md` and `plugins/<plugin>/commands/
 
 Optional supplemental sections (e.g., `<Settings_Reference>`, `<Arguments>`, `<Escalation_And_Stop_Conditions>`, `<Advanced>`) are allowed. Use the XML tag form (`<Purpose>`), not Markdown headers (`## Purpose`).
 
-`scripts/validate.sh` includes a soft 9-section presence check. README.md files are explicitly excluded from this requirement — README format is 5-section (Purpose / Usage / Settings / `core` dependency / Examples-or-equivalent).
+`scripts/validate.sh` includes a soft 9-section presence check. README.md files are explicitly excluded from this requirement.
 
-This is an **internal house style** for `hg-pyun-plugins` — we adopt 9-section XML as our predictable scaffold so any new plugin author starts from the same structure.
+This is an **internal house style** for `hg-pyun-plugins` — we adopt 9-section XML as our predictable scaffold so any new asset author starts from the same structure.
 
 ## `settings.language` Standard
 
@@ -118,9 +105,10 @@ Plugins whose output language is configurable (commit messages, PR bodies, ticke
 - Presets: Korean, English, Japanese, Chinese.
 - Custom values (e.g., `Spanish`, `Bahasa Indonesia`) are accepted as free text.
 
-Each affected SKILL.md / command.md file references the variable as `$LANGUAGE` and includes a `<Settings_Reference>` block describing the variable and accepted values.
+Each language-dependent SKILL.md / command.md file references the variable as `$LANGUAGE` and includes a `<Settings_Reference>` block describing the variable and accepted values.
 
-Exempt cases (do not require `settings.language`):
-- `git/commands/git-rebase-stack.md` — emits only conversational guidance/questions/reports, which stay in Korean per the marketplace SPEC.
-- `debug` plugin — no language-dependent artifact.
-- `core` plugin — agents/skills return findings in the calling session's language; no static artifact.
+Within `hg-pyun-tools`, exempt artifacts (do not consume `$LANGUAGE`):
+- `commands/git-rebase-stack.md` — emits only conversational guidance/questions/reports, which stay in Korean per the marketplace SPEC.
+- `skills/curl-debug/SKILL.md` — no language-dependent artifact.
+- `skills/code-review/SKILL.md` and `skills/core-verify/SKILL.md` — return findings in the calling session's language.
+- `agents/*.md` — output uses the calling session's language; no static artifact.

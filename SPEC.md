@@ -7,97 +7,70 @@
 **Repository**: `hg-pyun/claude-code-marketplace` (Public)
 **License**: MIT
 
-A static GitHub repository for the Claude Code plugin marketplace. Personal use today, structured to be shareable with teams or the community later. The catalog underwent a full overhaul on 2026-05-22 that trimmed unused plugins, added a shared `core` plugin, and aligned all retained plugins to a 9-section SKILL.md house style.
+A static GitHub repository for the Claude Code plugin marketplace. Personal use today, structured to be shareable with teams or the community later. After the 2026-05-22 consolidation the catalog ships a single unified plugin (`hg-pyun-tools`) that bundles the assets that previously lived in five separate plugins.
 
-## Plugin Catalog (5 plugins after 2026-05-22 overhaul)
+## Plugin Catalog (1 unified plugin)
 
 | Plugin | Purpose | Key entrypoints |
 |--------|---------|-----------------|
-| **core** | Shared reviewer, explorer, architect, and critic agents plus verify and code-review skills for cross-plugin orchestration. | `/core-verify`, `/code-review`, `Task(subagent_type="core:<agent>")` |
-| **debug** | API debugging — execute a cURL, reverse-trace the response to source code, report root cause with file:line evidence. Optionally delegates non-trivial fix reviews to `core:reviewer`. | `/curl-debug <cURL>` |
-| **git** | Git and GitHub workflows — conventional commits in `$LANGUAGE`, PR creation, stacked-PR rebase. Never includes `Co-Authored-By`. | `/git-commit`, `/github-pr [--draft]`, `/git-rebase-stack` |
-| **linear** | Linear ticket enrichment — interview the user to fill missing sections (Goal / Context / Acceptance Criteria / Technical Notes / Out of Scope / Open Questions) and save back via Linear MCP. | `/enrich-ticket <url>` |
-| **plan** | Lightweight in-depth interview that produces a spec file. Cover Goal / Constraints / Acceptance Criteria / Technical Direction / Open Questions / Out of Scope. | `/deep-interview [topic]` |
+| **hg-pyun-tools** | Unified toolkit — shared `reviewer`/`explorer`/`architect`/`critic` agents plus git+GitHub workflows, Linear ticket enrichment, deep-interview planning, cURL debugging, and code review/verify skills. | `/git-commit`, `/github-pr [--draft]`, `/git-rebase-stack`, `/enrich-ticket <url>`, `/deep-interview [topic]`, `/curl-debug <cURL>`, `/code-review`, `/core-verify`, `Task(subagent_type="reviewer"|"explorer"|"architect"|"critic")` |
 
 ## Architecture
 
-### Hybrid model
+### Single-plugin model
 
-Workflow-specific assets live in their owning plugin (`git-commit` belongs to `git`; `curl-debug` belongs to `debug`). Cross-cutting agents and shared skills live in a single shared `core` plugin and are invoked across plugins via `Task(subagent_type="core:<agent>", ...)`.
+All assets live inside `plugins/hg-pyun-tools/`. Skills and commands invoke the bundled agents via `Task(subagent_type="<agent>", ...)` without a plugin prefix because everything ships together. The previous "missing-`core` fallback" contract is no longer needed and has been removed from all artifacts.
 
-### Cross-plugin invocation contract
+### Agent invocation contract
 
 ```
 Task(
-  subagent_type="core:reviewer",
+  subagent_type="reviewer",
   prompt="<diff or content>"
 )
 ```
 
-The subagent_type form is `<plugin-name>:<agent-name>`. `core` is the plugin name; `hg-pyun-plugins` is the marketplace name.
-
-### Missing-`core` fallback
-
-Plugins that delegate to `core` must handle the case where `core` is not installed:
-
-- Detection: Task invocation returns "unknown subagent" or equivalent error.
-- Action: perform the operation inline with equivalent behavior.
-- Output: append "core plugin not installed; <skill> performed locally" to the summary.
-
-This contract preserves graceful degradation per Spec Constraint #5 below.
+`subagent_type` is the bare agent name (`reviewer`, `explorer`, `architect`, `critic`). The marketplace name (`hg-pyun-plugins`) and plugin name (`hg-pyun-tools`) are container labels, not part of the invocation form.
 
 ## Key Decisions
 
 | Item | Decision | Rationale |
 |------|----------|-----------|
 | Project type | Static repository (marketplace.json + plugin files) | Minimal structure suitable for personal use |
-| Source management | Monorepo (all plugins in this repository) | Consistent management in a single repository |
-| Directory structure | Separated by plugin (`plugins/<name>/`) | Simple and intuitive |
+| Source management | Monorepo (all plugin assets in this repository) | Consistent management in a single repository |
+| Directory structure | Single bundled plugin under `plugins/hg-pyun-tools/` | One install path, no cross-plugin wiring |
 | `pluginRoot` | `./plugins` | Simplifies source paths |
-| Versioning | `YYYY.MM.DD[.patch]` (CLAUDE.md) | Date-based; the SPEC's earlier `YYYY.MM` text was superseded on 2026-05-22 |
-| Templates | `templates/plugin/` scaffold | New plugin starting point |
-| Automation | Local `scripts/validate.sh --strict`; no CI workflow | Personal marketplace; CI was an explicit Non-Goal of the 2026-05-22 overhaul |
-| Cross-plugin agents | Shared `core` plugin with hybrid invocation pattern | Avoids duplication while preserving plugin-level install independence |
-| 9-section SKILL.md | House style; soft-checked by `scripts/validate.sh` | Predictable scaffold; not a universal canonical |
+| Versioning | `YYYY.MM.DD[.patch]` (CLAUDE.md) | Date-based |
+| Templates | `templates/plugin/` scaffold | Starting point if the catalog grows again |
+| Automation | Local `scripts/validate.sh --strict`; no CI workflow | Personal marketplace |
+| 9-section SKILL.md | House style; soft-checked by `scripts/validate.sh` | Predictable scaffold |
 
 ## Directory Structure
 
 ```
 claude-code-marketplace/
 ├── .claude-plugin/
-│   └── marketplace.json        # Marketplace catalog (core file)
-├── plugins/                    # Root directory for all plugins
-│   ├── core/                   # Shared agents + skills (added 2026-05-22)
-│   │   ├── .claude-plugin/plugin.json
-│   │   ├── agents/
-│   │   │   ├── reviewer.md
-│   │   │   ├── explorer.md
-│   │   │   ├── architect.md
-│   │   │   └── critic.md
-│   │   ├── skills/
-│   │   │   ├── core-verify/SKILL.md
-│   │   │   └── code-review/SKILL.md
-│   │   ├── README.md
-│   │   ├── SPEC.md              # incl. Smoke Test Log
-│   │   └── REFERENCES.md        # structural conventions credit
-│   ├── debug/
-│   │   ├── .claude-plugin/plugin.json
-│   │   ├── skills/curl-debug/SKILL.md
-│   │   ├── README.md
-│   │   └── SPEC.md
-│   ├── git/
-│   │   ├── .claude-plugin/plugin.json
-│   │   ├── commands/git-rebase-stack.md
-│   │   ├── skills/git-commit/SKILL.md
-│   │   ├── skills/github-pr/SKILL.md
-│   │   └── README.md
-│   ├── linear/
-│   │   ├── .claude-plugin/plugin.json
-│   │   ├── commands/enrich-ticket.md
-│   │   └── README.md
-│   └── plan/
+│   └── marketplace.json        # Marketplace catalog (1 entry)
+├── plugins/                    # Root directory for plugins
+│   └── hg-pyun-tools/          # Unified plugin
 │       ├── .claude-plugin/plugin.json
-│       ├── commands/deep-interview.md
+│       ├── agents/
+│       │   ├── reviewer.md
+│       │   ├── explorer.md
+│       │   ├── architect.md
+│       │   └── critic.md
+│       ├── commands/
+│       │   ├── git-rebase-stack.md
+│       │   ├── enrich-ticket.md
+│       │   └── deep-interview.md
+│       ├── skills/
+│       │   ├── code-review/SKILL.md
+│       │   ├── core-verify/SKILL.md
+│       │   ├── git-commit/SKILL.md
+│       │   ├── git-commit/references/conventional-commit.md
+│       │   ├── github-pr/SKILL.md
+│       │   ├── github-pr/references/conventional-commit.md
+│       │   └── curl-debug/SKILL.md
 │       └── README.md
 ├── scripts/
 │   └── validate.sh             # Strict local validation gate
@@ -166,43 +139,40 @@ The marketplace `metadata.version` bumps when the catalog itself changes (entry 
 | `description` | Y | One-line description |
 | `version` | Y | Format per CLAUDE.md; must match marketplace.json entry version |
 | `author` | Y | **Object form** `{ "name": "..." }`. String form is rejected by `claude plugin validate --strict`. |
-| `settings.language` | conditional | Required for plugins whose output language is configurable (currently `git`, `linear`, `plan`). See CLAUDE.md `settings.language` Standard. |
+| `settings.language` | conditional | Required for plugins whose output language is configurable. `hg-pyun-tools` sets `Korean` because it ships language-dependent artifacts (`git-commit`, `github-pr`, `enrich-ticket`, `deep-interview`). |
 
 ## Versioning Rules
 
-Versions follow `YYYY.MM.DD[.patch]` per CLAUDE.md. The marketplace SPEC's pre-overhaul `YYYY.MM[.patch]` notation has been superseded as of 2026-05-22.
+Versions follow `YYYY.MM.DD[.patch]` per CLAUDE.md.
 
 - A plugin's `plugin.json` version and the marketplace.json entry version must stay in lock-step.
 - The marketplace `metadata.version` bumps only when the catalog (entry set) changes.
-- The "Multi-Phase Overhaul Exception" in CLAUDE.md permits deferring intermediate per-phase bumps when a planned overhaul touches many plugins on the same day.
 
 ## Validation
 
 `scripts/validate.sh` is the single source of truth for local marketplace health. It performs:
 
 0. JSON sanity of `marketplace.json` (via `jq empty`).
-1. Plugin count check (must equal 5 today).
+1. Plugin count check (must equal 1 today — `hg-pyun-tools`).
 2. Orphan check — every marketplace entry has a directory; every directory has a marketplace entry.
 3. Per-plugin version sync between `plugin.json` and `marketplace.json`.
 4. Per-plugin `claude plugin validate --strict .` PASS.
 5. Soft 9-section presence check (anchored regex, code-block stripped) for every SKILL.md and command md file.
-6. Sentinel version rejection — fails if any plugin still has `0.0.0-overhaul-pending`.
+6. Canonical-version gate — fails if any plugin version is not in `YYYY.MM.DD[.N]` form.
 
 Invocation: `bash scripts/validate.sh` (returns 0 on PASS, 1 on any failure). Diagnostic stderr from `claude plugin validate` surfaces directly so failures are inspectable.
 
-CI workflow is intentionally NOT included (explicit Non-Goal of the 2026-05-22 overhaul). Add CI later if the marketplace grows to multi-contributor scale.
-
 ## Adding a Plugin
+
+The marketplace today contains a single bundled plugin. If a future addition warrants a separate package:
 
 1. Copy `templates/plugin/` to `plugins/<new-name>/` and rename the template directory.
 2. Update `plugins/<new-name>/.claude-plugin/plugin.json` — set `name`, `description`, `version`, `author`, optional `settings.language`.
-3. Add plugin source files (commands/, skills/, hooks/, agents/, etc.) following the 9-section XML house style for any SKILL.md / command md.
-4. Add an entry to `.claude-plugin/marketplace.json` `plugins` array. Keep alphabetical order via `jq '.plugins |= sort_by(.name)'` after insert.
-5. Bump `version` in both `plugin.json` and `marketplace.json` per CLAUDE.md.
+3. Add plugin source files following the 9-section XML house style.
+4. Add an entry to `.claude-plugin/marketplace.json` `plugins` array (alphabetical via `jq '.plugins |= sort_by(.name)'`).
+5. Bump `version` in both `plugin.json` and `marketplace.json` per CLAUDE.md, and update the validator's expected plugin count.
 6. Run `bash scripts/validate.sh`. Exit 0 = PASS.
 7. Commit and push.
-
-The template scaffold includes `plugin.json` (with `author` placeholder), `README.md`, an example `SKILL.md` (9-section), and an example `command.md` (frontmatter + 9-section).
 
 ## Constraints and Notes
 
@@ -212,40 +182,32 @@ The template scaffold includes `plugin.json` (with `author` placeholder), `READM
 - **Plugin names**: kebab-case, no spaces.
 - **`${CLAUDE_PLUGIN_ROOT}`**: used to reference the plugin installation path in hooks and MCP server configurations.
 
-## Plugin Language Setting (Realized State)
+## Plugin Language Setting
 
-The 2026-05-22 overhaul realized the previously-planned language setting. Current state:
+`hg-pyun-tools` exposes `settings.language` (default `Korean`). It is consumed by:
 
-### Affected plugins
-
-| Plugin | `settings.language` present | `$LANGUAGE` variable in body | `--lang=<value>` override |
-|--------|----------------------------|------------------------------|---------------------------|
-| `git` | YES (`"Korean"`) | Yes — `git-commit/SKILL.md`, `github-pr/SKILL.md` (subject/body/PR description) | Yes |
-| `linear` | YES (`"Korean"`) | Yes — `enrich-ticket.md` (interview + ticket body) | Yes |
-| `plan` | YES (`"Korean"`) | Yes — `deep-interview.md` (interview + spec body) | Yes |
-| `debug` | No | n/a (no language-dependent artifact) | n/a |
-| `core` | No | n/a (agents return findings in calling-session language) | n/a |
-
-### git plugin language scope
-
-`git-rebase-stack.md` is exempt — its Ground Rules continue to mandate Korean for conversational output. Only `git-commit` and `github-pr` consume `$LANGUAGE`. Within those:
-
-- **git-commit**: subject description and body use `$LANGUAGE`; `type`/`scope`/`BREAKING CHANGE` keyword stay English.
-- **github-pr**: PR description portion and body content use `$LANGUAGE`; `type(scope)` and body section headers (`## Summary`, `## Changes`) and `Closes #N` stay English.
+| Asset | `$LANGUAGE` usage | `--lang=<value>` override |
+|-------|------------------|---------------------------|
+| `skills/git-commit/SKILL.md` | Subject + body of the commit message | Yes |
+| `skills/github-pr/SKILL.md` | PR description content + body content | Yes |
+| `commands/enrich-ticket.md` | Interview questions + Linear ticket body | Yes |
+| `commands/deep-interview.md` | Interview questions + spec document body | Yes |
+| `commands/git-rebase-stack.md` | n/a — always Korean per marketplace SPEC | n/a |
+| `skills/curl-debug/SKILL.md` | n/a — no language-dependent artifact | n/a |
+| `skills/code-review/SKILL.md`, `skills/core-verify/SKILL.md` | n/a — output uses the calling session's language | n/a |
+| `agents/*.md` | n/a — output uses the calling session's language | n/a |
 
 ### Language presets and custom values
 
 Presets: Korean, English, Japanese, Chinese. ISO 639-1 codes (`ko`, `en`, `ja`, `zh`) are also accepted. Custom values (e.g., `Spanish`, `Bahasa Indonesia`) are passed through as-is.
 
-## Smoke Tests
+## Consolidation History
 
-The `core` plugin's `SPEC.md` "Smoke Test Log" section records manual smoke-test runs of `core` agents/skills and cross-plugin wiring (most notably `debug`'s optional delegation to `core:reviewer`). See `plugins/core/SPEC.md` for the recorded prompts and pass criteria.
+The 2026-05-22.1 consolidation merged the prior five-plugin catalog (`core`, `debug`, `git`, `linear`, `plan`) into a single unified `hg-pyun-tools` plugin. Notable effects:
 
-## Overhaul History
+- One install path instead of five — `/plugin install hg-pyun-tools@hg-pyun-plugins`.
+- `core:<agent>` invocation prefix removed across all skills and commands — agents are invoked as `subagent_type="<agent>"`.
+- Missing-`core` fallback contract removed from `code-review`, `core-verify`, and `curl-debug` (no longer applicable inside a single bundled plugin).
+- Marketplace metadata version bumped from `2026.05.22` → `2026.05.22.1` to reflect the catalog change.
 
-The 2026-05-22 overhaul (consensus-planned, reviewed) introduced these key changes:
-
-- Removed: `ideate` (empty), `auto-harness`, `craft`, `session-harvester`.
-- Added: `core` plugin (4 agents + 2 skills + governance docs).
-- Aligned: `git`, `linear`, `plan`, `debug` to 9-section XML house style + `author` field + (where applicable) `settings.language`.
-- New governance: `scripts/validate.sh`, `templates/plugin/`, CLAUDE.md Multi-Phase Overhaul Exception, CLAUDE.md `author` requirement, CLAUDE.md `core` invocation convention, CLAUDE.md 9-section House Style.
+The 2026-05-22 overhaul that preceded this consolidation (removal of unused plugins, addition of the shared `core` plugin, 9-section house style) remains the source of the current per-asset structure.

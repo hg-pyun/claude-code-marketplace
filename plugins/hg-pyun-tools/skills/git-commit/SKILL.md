@@ -85,7 +85,7 @@ Generate the commit message per `references/conventional-commit.md`. Subject + b
 <Tool_Usage>
 - Use `Bash` for git operations: `git status`, `git diff`, `git add`, `git commit`, `git log`.
 - Use `AskUserQuestion` for the split-decision step.
-- Do not invoke other plugins for this skill's core flow; `core:reviewer` may optionally be invoked separately if the user explicitly asks for a pre-commit review.
+- Do not invoke other agents for this skill's core flow; the `reviewer` agent may optionally be invoked separately if the user explicitly asks for a pre-commit review.
 </Tool_Usage>
 
 <Examples>
