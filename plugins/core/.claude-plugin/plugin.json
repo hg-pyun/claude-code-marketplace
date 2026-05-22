@@ -1,0 +1,8 @@
+{
+  "name": "core",
+  "description": "Shared reviewer, explorer, architect, and critic agents plus verify and code-review skills for cross-plugin orchestration",
+  "version": "2026.05.22",
+  "author": {
+    "name": "hg-pyun"
+  }
+}

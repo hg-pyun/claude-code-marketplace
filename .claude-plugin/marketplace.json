@@ -10,40 +10,20 @@
   },
   "plugins": [
     {
-      "name": "git",
-      "source": "./plugins/git",
-      "description": "Git and Github workflows for claude code",
-      "version": "2026.03.24.2",
+      "name": "core",
+      "source": "./plugins/core",
+      "description": "Shared reviewer, explorer, architect, and critic agents plus verify and code-review skills for cross-plugin orchestration",
+      "version": "2026.05.22",
       "keywords": [
-        "git",
-        "commit",
-        "pull-request",
-        "conventional-commit",
-        "rebase",
-        "stacked-pr"
-      ]
-    },
-    {
-      "name": "plan",
-      "source": "./plugins/plan",
-      "description": "Automatically generates project spec documents through in-depth interviews",
-      "version": "2026.03.24",
-      "keywords": [
-        "interview",
-        "spec",
-        "requirements",
-        "planning"
-      ]
-    },
-    {
-      "name": "linear",
-      "source": "./plugins/linear",
-      "description": "Linear workflow plugins for Claude code",
-      "version": "2026.03.24",
-      "keywords": [
-        "linear",
-        "ticket",
-        "interview"
+        "core",
+        "shared",
+        "reviewer",
+        "explorer",
+        "architect",
+        "critic",
+        "verify",
+        "code-review",
+        "multi-agent"
       ]
     },
     {
@@ -58,6 +38,43 @@
         "trace",
         "bug",
         "reverse-trace"
+      ]
+    },
+    {
+      "name": "git",
+      "source": "./plugins/git",
+      "description": "Git and Github workflows for claude code",
+      "version": "2026.03.24.2",
+      "keywords": [
+        "git",
+        "commit",
+        "pull-request",
+        "conventional-commit",
+        "rebase",
+        "stacked-pr"
+      ]
+    },
+    {
+      "name": "linear",
+      "source": "./plugins/linear",
+      "description": "Linear workflow plugins for Claude code",
+      "version": "2026.03.24",
+      "keywords": [
+        "linear",
+        "ticket",
+        "interview"
+      ]
+    },
+    {
+      "name": "plan",
+      "source": "./plugins/plan",
+      "description": "Automatically generates project spec documents through in-depth interviews",
+      "version": "2026.03.24",
+      "keywords": [
+        "interview",
+        "spec",
+        "requirements",
+        "planning"
       ]
     }
   ]
