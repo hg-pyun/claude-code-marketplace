@@ -1,6 +1,6 @@
 # Claude Code Marketplace for personal
 
-Personal Claude Code plugin marketplace.
+Personal Claude Code plugin marketplace (`hg-pyun-plugins`).
 
 ## Usage
 
@@ -24,21 +24,33 @@ Personal Claude Code plugin marketplace.
 
 ## Plugins
 
-- [git](plugins/git/README.md) - Git workflow automation (commit, PR, stacked PR rebase)
-- [linear](plugins/linear/README.md) - Linear ticket enrichment via interview
-- [plan](plugins/plan/README.md) - Project planning support (deep interview)
+- [core](plugins/core/README.md) — Shared reviewer, explorer, architect, and critic agents plus verify and code-review skills for cross-plugin orchestration
+- [debug](plugins/debug/README.md) — API debugging tools — execute cURL requests and reverse-trace bugs through the codebase
+- [git](plugins/git/README.md) — Git and GitHub workflows (conventional commit, PR, stacked-PR rebase)
+- [linear](plugins/linear/README.md) — Linear ticket enrichment via interview
+- [plan](plugins/plan/README.md) — Lightweight project-planning interview (`/deep-interview`)
 
-See [SPEC.md](SPEC.md) for directory structure and design decisions.
+See [SPEC.md](SPEC.md) for architecture, directory structure, and design decisions.
 
 ## Adding a Plugin
 
-1. Create `plugins/<plugin-name>/` directory
-2. Add `.claude-plugin/plugin.json` manifest
-3. Add plugin source files (commands/, hooks/, agents/, etc.)
-4. Add entry to `.claude-plugin/marketplace.json` `plugins` array
-5. Bump `version` in both `plugin.json` and `marketplace.json` (see [SPEC.md](SPEC.md#version-management-rules))
-6. Validate with `claude plugin validate .` or `/plugin validate .`
-7. Commit and push
+1. Copy `templates/plugin/` to `plugins/<plugin-name>/` and rename the template directory.
+2. Update `plugins/<plugin-name>/.claude-plugin/plugin.json` — set `name`, `description`, `version`, `author`, optional `settings.language`.
+3. Add plugin source files (commands/, skills/, hooks/, agents/, etc.) following the 9-section XML house style for any SKILL.md / command md.
+4. Add an entry to `.claude-plugin/marketplace.json` `plugins` array. Keep alphabetical order via `jq '.plugins |= sort_by(.name)'` after insert.
+5. Bump `version` in both `plugin.json` and `marketplace.json` per [CLAUDE.md](CLAUDE.md).
+6. Run `bash scripts/validate.sh`. Exit 0 = PASS.
+7. Commit and push.
+
+## Validation
+
+Run the local validator before committing or opening a PR:
+
+```shell
+bash scripts/validate.sh
+```
+
+It runs `claude plugin validate --strict` on every plugin, checks JSON sanity, plugin count, orphans, version sync between `plugin.json` and `marketplace.json`, and the 9-section SKILL.md house style. See [SPEC.md](SPEC.md#validation) for details.
 
 ## License
 

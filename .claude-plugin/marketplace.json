@@ -5,7 +5,7 @@
   },
   "metadata": {
     "description": "Personal Claude Code plugin marketplace by hg-pyun",
-    "version": "2026.02",
+    "version": "2026.05.22",
     "pluginRoot": "./plugins"
   },
   "plugins": [
@@ -29,8 +29,8 @@
     {
       "name": "debug",
       "source": "./plugins/debug",
-      "description": "API debugging tools — execute cURL requests and trace bugs through the codebase",
-      "version": "2026.03.24",
+      "description": "API debugging tools — execute cURL requests and reverse-trace bugs through the codebase",
+      "version": "2026.05.22",
       "keywords": [
         "debug",
         "curl",
@@ -43,8 +43,8 @@
     {
       "name": "git",
       "source": "./plugins/git",
-      "description": "Git and Github workflows for claude code",
-      "version": "2026.03.24.2",
+      "description": "Git and GitHub workflows for Claude Code",
+      "version": "2026.05.22",
       "keywords": [
         "git",
         "commit",
@@ -57,8 +57,8 @@
     {
       "name": "linear",
       "source": "./plugins/linear",
-      "description": "Linear workflow plugins for Claude code",
-      "version": "2026.03.24",
+      "description": "Linear workflow plugin for Claude Code",
+      "version": "2026.05.22",
       "keywords": [
         "linear",
         "ticket",
@@ -69,7 +69,7 @@
       "name": "plan",
       "source": "./plugins/plan",
       "description": "Automatically generates project spec documents through in-depth interviews",
-      "version": "2026.03.24",
+      "version": "2026.05.22",
       "keywords": [
         "interview",
         "spec",

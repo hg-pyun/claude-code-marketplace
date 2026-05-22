@@ -1,0 +1,9 @@
+{
+  "name": "REPLACE-WITH-KEBAB-CASE-NAME",
+  "description": "REPLACE: one-line description of what this plugin does",
+  "version": "YYYY.MM.DD",
+  "author": { "name": "hg-pyun" },
+  "settings": {
+    "language": "Korean"
+  }
+}

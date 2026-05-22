@@ -1,0 +1,8 @@
+# OS / editor noise
+.DS_Store
+.idea/
+.vscode/
+
+# Runtime state from external tools that may run inside this repo
+.omc/
+.clawhip/

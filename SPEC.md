@@ -7,21 +7,58 @@
 **Repository**: `hg-pyun/claude-code-marketplace` (Public)
 **License**: MIT
 
-A static GitHub repository for the Claude Code plugin marketplace.
-Starting as personal use, but maintaining a structure that can be gradually shared with teams or the community in the future.
+A static GitHub repository for the Claude Code plugin marketplace. Personal use today, structured to be shareable with teams or the community later. The catalog underwent a full overhaul on 2026-05-22 that trimmed unused plugins, added a shared `core` plugin, and aligned all retained plugins to a 9-section SKILL.md house style.
+
+## Plugin Catalog (5 plugins after 2026-05-22 overhaul)
+
+| Plugin | Purpose | Key entrypoints |
+|--------|---------|-----------------|
+| **core** | Shared reviewer, explorer, architect, and critic agents plus verify and code-review skills for cross-plugin orchestration. | `/core-verify`, `/code-review`, `Task(subagent_type="core:<agent>")` |
+| **debug** | API debugging — execute a cURL, reverse-trace the response to source code, report root cause with file:line evidence. Optionally delegates non-trivial fix reviews to `core:reviewer`. | `/curl-debug <cURL>` |
+| **git** | Git and GitHub workflows — conventional commits in `$LANGUAGE`, PR creation, stacked-PR rebase. Never includes `Co-Authored-By`. | `/git-commit`, `/github-pr [--draft]`, `/git-rebase-stack` |
+| **linear** | Linear ticket enrichment — interview the user to fill missing sections (Goal / Context / Acceptance Criteria / Technical Notes / Out of Scope / Open Questions) and save back via Linear MCP. | `/enrich-ticket <url>` |
+| **plan** | Lightweight in-depth interview that produces a spec file. Cover Goal / Constraints / Acceptance Criteria / Technical Direction / Open Questions / Out of Scope. | `/deep-interview [topic]` |
+
+## Architecture
+
+### Hybrid model
+
+Workflow-specific assets live in their owning plugin (`git-commit` belongs to `git`; `curl-debug` belongs to `debug`). Cross-cutting agents and shared skills live in a single shared `core` plugin and are invoked across plugins via `Task(subagent_type="core:<agent>", ...)`.
+
+### Cross-plugin invocation contract
+
+```
+Task(
+  subagent_type="core:reviewer",
+  prompt="<diff or content>"
+)
+```
+
+The subagent_type form is `<plugin-name>:<agent-name>`. `core` is the plugin name; `hg-pyun-plugins` is the marketplace name.
+
+### Missing-`core` fallback
+
+Plugins that delegate to `core` must handle the case where `core` is not installed:
+
+- Detection: Task invocation returns "unknown subagent" or equivalent error.
+- Action: perform the operation inline with equivalent behavior.
+- Output: append "core plugin not installed; <skill> performed locally" to the summary.
+
+This contract preserves graceful degradation per Spec Constraint #5 below.
 
 ## Key Decisions
 
 | Item | Decision | Rationale |
 |------|----------|-----------|
 | Project type | Static repository (marketplace.json + plugin files) | Minimal structure suitable for personal use |
-| Source management | Monorepo (all plugins included in this repository) | Consistent management in a single repository |
-| Directory structure | Separated by plugin (plugins/plugin-name/) | Simple and intuitive structure |
-| pluginRoot | Set to `./plugins` | Simplifies source paths |
-| Versioning | Date-based (YYYY.MM[.patch] format) | Intuitive versioning scheme suitable for personal projects |
-| Templates | Not included | Claude Code can help when needed |
-| Automation scripts | Not included | Manual management + Claude Code assistance |
-| Target users | Personal → gradual sharing | Use the same plugin set across multiple environments |
+| Source management | Monorepo (all plugins in this repository) | Consistent management in a single repository |
+| Directory structure | Separated by plugin (`plugins/<name>/`) | Simple and intuitive |
+| `pluginRoot` | `./plugins` | Simplifies source paths |
+| Versioning | `YYYY.MM.DD[.patch]` (CLAUDE.md) | Date-based; the SPEC's earlier `YYYY.MM` text was superseded on 2026-05-22 |
+| Templates | `templates/plugin/` scaffold | New plugin starting point |
+| Automation | Local `scripts/validate.sh --strict`; no CI workflow | Personal marketplace; CI was an explicit Non-Goal of the 2026-05-22 overhaul |
+| Cross-plugin agents | Shared `core` plugin with hybrid invocation pattern | Avoids duplication while preserving plugin-level install independence |
+| 9-section SKILL.md | House style; soft-checked by `scripts/validate.sh` | Predictable scaffold; not a universal canonical |
 
 ## Directory Structure
 
@@ -30,293 +67,185 @@ claude-code-marketplace/
 ├── .claude-plugin/
 │   └── marketplace.json        # Marketplace catalog (core file)
 ├── plugins/                    # Root directory for all plugins
-│   ├── git/                    # Git workflow automation plugin
-│   │   ├── .claude-plugin/
-│   │   │   └── plugin.json
-│   │   ├── commands/
-│   │   │   ├── git-commit.md
-│   │   │   ├── github-pr.md
-│   │   │   └── git-rebase-stack.md
+│   ├── core/                   # Shared agents + skills (added 2026-05-22)
+│   │   ├── .claude-plugin/plugin.json
+│   │   ├── agents/
+│   │   │   ├── reviewer.md
+│   │   │   ├── explorer.md
+│   │   │   ├── architect.md
+│   │   │   └── critic.md
+│   │   ├── skills/
+│   │   │   ├── core-verify/SKILL.md
+│   │   │   └── code-review/SKILL.md
+│   │   ├── README.md
+│   │   ├── SPEC.md              # incl. Smoke Test Log
+│   │   └── REFERENCES.md        # structural conventions credit
+│   ├── debug/
+│   │   ├── .claude-plugin/plugin.json
+│   │   ├── skills/curl-debug/SKILL.md
+│   │   ├── README.md
+│   │   └── SPEC.md
+│   ├── git/
+│   │   ├── .claude-plugin/plugin.json
+│   │   ├── commands/git-rebase-stack.md
+│   │   ├── skills/git-commit/SKILL.md
+│   │   ├── skills/github-pr/SKILL.md
 │   │   └── README.md
-│   ├── linear/                 # Linear ticket enrichment plugin
-│   │   ├── .claude-plugin/
-│   │   │   └── plugin.json
-│   │   ├── commands/
-│   │   │   └── enrich-ticket.md
+│   ├── linear/
+│   │   ├── .claude-plugin/plugin.json
+│   │   ├── commands/enrich-ticket.md
 │   │   └── README.md
-│   └── plan/                   # Project planning plugin
-│       ├── .claude-plugin/
-│       │   └── plugin.json
-│       ├── commands/
-│       │   └── deep-interview.md
+│   └── plan/
+│       ├── .claude-plugin/plugin.json
+│       ├── commands/deep-interview.md
 │       └── README.md
-├── LICENSE                     # MIT License
+├── scripts/
+│   └── validate.sh             # Strict local validation gate
+├── templates/
+│   └── plugin/                 # Scaffold for new plugins
+├── CLAUDE.md                   # Per-file governance + invocation conventions
+├── LICENSE                     # MIT
 ├── README.md                   # Project description and usage
-└── SPEC.md                     # This spec document
+└── SPEC.md                     # This document
 ```
 
-## marketplace.json Schema
+## `marketplace.json` Schema
 
 ```json
 {
   "name": "hg-pyun-plugins",
-  "owner": {
-    "name": "hg-pyun"
-  },
+  "owner": { "name": "hg-pyun" },
   "metadata": {
     "description": "Personal Claude Code plugin marketplace by hg-pyun",
-    "version": "2026.02",
+    "version": "YYYY.MM.DD[.patch]",
     "pluginRoot": "./plugins"
   },
   "plugins": [
     {
-      "name": "git",
-      "source": "./plugins/git",
-      "description": "Analyzes git diff/log to auto-generate Korean conventional commit messages, create GitHub PRs, and handle stacked PR rebase",
-      "version": "2026.02",
-      "keywords": ["git", "commit", "pull-request", "conventional-commit", "korean", "rebase", "stacked-pr"]
-    },
-    {
-      "name": "plan",
-      "source": "./plugins/plan",
-      "description": "Auto-generates project spec documents through in-depth interviews",
-      "version": "2026.02",
-      "keywords": ["interview", "spec", "requirements", "planning"]
-    },
-    {
-      "name": "linear",
-      "source": "./plugins/linear",
-      "description": "Analyzes Linear tickets and fills in missing information through interviews",
-      "version": "2026.02",
-      "keywords": ["linear", "ticket", "interview"]
+      "name": "<plugin-name>",
+      "source": "./plugins/<plugin-name>",
+      "description": "<one-line description>",
+      "version": "YYYY.MM.DD[.patch]",
+      "keywords": ["..."]
     }
   ]
 }
 ```
 
-### Plugin Entry Fields
+### Plugin entry fields
 
 | Field | Required | Description |
 |-------|----------|-------------|
 | `name` | Y | Plugin identifier (kebab-case) |
 | `source` | Y | Plugin directory path (`./plugins/<name>` format) |
 | `description` | Y | Plugin description |
-| `version` | Y | Date-based version (YYYY.MM[.patch]) |
+| `version` | Y | `YYYY.MM.DD[.patch]` (see CLAUDE.md) — must match `plugins/<name>/.claude-plugin/plugin.json` |
 | `keywords` | N | Array of search keywords |
 
-## Version Management Rules
+The marketplace `metadata.version` bumps when the catalog itself changes (entry added, removed, or renamed). Per-plugin file edits do not require a metadata bump.
 
-- Format: `YYYY.MM` (first release of the month) or `YYYY.MM.patch` (additional changes in the same month)
-- When a plugin is changed, its version must be bumped.
-  - `version` in `plugins/<name>/.claude-plugin/plugin.json`
-  - `version` of the corresponding plugin in `.claude-plugin/marketplace.json`
-- The versions in both locations must always be kept in sync.
-- The marketplace metadata version is only bumped when the overall catalog changes.
-
-## Constraints and Notes
-
-- **Reserved names**: Names like `claude-code-marketplace`, `claude-code-plugins`, `anthropic-marketplace` cannot be used as marketplace names
-- **File references**: Plugins cannot reference files outside their own directory using `../` paths (because they are copied to a cache directory during installation)
-- **Path traversal**: `..` cannot be included in the source path
-- **Plugin names**: kebab-case, no spaces
-- **`${CLAUDE_PLUGIN_ROOT}`**: Used to reference the plugin installation path in hooks and MCP server configurations
-
-## Plugin Language Setting
-
-### Overview
-
-Add a configurable language setting to all plugins so that generated output can be written in Korean, English, or other languages. This replaces the current hard-coded Korean requirement across all plugins. Each plugin manages its own `settings.language` independently.
-
-### Shared Mechanism (All Plugins)
-
-#### Settings Storage
-
-Add a `settings` field to each plugin's `.claude-plugin/plugin.json`:
+## `plugin.json` Schema (per-plugin)
 
 ```json
 {
   "name": "<plugin-name>",
-  "version": "2026.02",
+  "description": "<one-line>",
+  "version": "YYYY.MM.DD[.patch]",
+  "author": { "name": "hg-pyun" },
   "settings": {
     "language": "Korean"
   }
 }
 ```
 
-- Simple string value — stores the default language
-- Preset languages and parsing logic are managed in the command md files, not in plugin.json
-- Default value: **Korean** (backward compatible with existing behavior)
+### Fields
 
-#### Language Value Format
+| Field | Required | Notes |
+|-------|----------|-------|
+| `name` | Y | Must match the marketplace.json entry |
+| `description` | Y | One-line description |
+| `version` | Y | Format per CLAUDE.md; must match marketplace.json entry version |
+| `author` | Y | **Object form** `{ "name": "..." }`. String form is rejected by `claude plugin validate --strict`. |
+| `settings.language` | conditional | Required for plugins whose output language is configurable (currently `git`, `linear`, `plan`). See CLAUDE.md `settings.language` Standard. |
 
-Both full language names and ISO 639-1 codes are accepted:
+## Versioning Rules
 
-| Full Name | ISO Code |
-|-----------|----------|
-| Korean | ko |
-| English | en |
-| Japanese | ja |
-| Chinese | zh |
+Versions follow `YYYY.MM.DD[.patch]` per CLAUDE.md. The marketplace SPEC's pre-overhaul `YYYY.MM[.patch]` notation has been superseded as of 2026-05-22.
 
-Custom values (e.g., `Spanish`, `Bahasa Indonesia`) are also accepted as free text.
+- A plugin's `plugin.json` version and the marketplace.json entry version must stay in lock-step.
+- The marketplace `metadata.version` bumps only when the catalog (entry set) changes.
+- The "Multi-Phase Overhaul Exception" in CLAUDE.md permits deferring intermediate per-phase bumps when a planned overhaul touches many plugins on the same day.
 
-Presets: **Korean, English, Japanese, Chinese**. Any other value is treated as a custom language name and passed through as-is.
+## Validation
 
-#### UX: How to Change Language
+`scripts/validate.sh` is the single source of truth for local marketplace health. It performs:
 
-Two mechanisms, used together:
+0. JSON sanity of `marketplace.json` (via `jq empty`).
+1. Plugin count check (must equal 5 today).
+2. Orphan check — every marketplace entry has a directory; every directory has a marketplace entry.
+3. Per-plugin version sync between `plugin.json` and `marketplace.json`.
+4. Per-plugin `claude plugin validate --strict .` PASS.
+5. Soft 9-section presence check (anchored regex, code-block stripped) for every SKILL.md and command md file.
+6. Sentinel version rejection — fails if any plugin still has `0.0.0-overhaul-pending`.
 
-1. **plugin.json default**: Edit `settings.language` in the plugin's `.claude-plugin/plugin.json` to change the persistent default.
-2. **Command argument override**: Pass `--lang=<value>` to override the default for a single invocation.
-   - The argument takes precedence over plugin.json when provided.
+Invocation: `bash scripts/validate.sh` (returns 0 on PASS, 1 on any failure). Diagnostic stderr from `claude plugin validate` surfaces directly so failures are inspectable.
 
-#### Command MD File Changes
+CI workflow is intentionally NOT included (explicit Non-Goal of the 2026-05-22 overhaul). Add CI later if the marketplace grows to multi-contributor scale.
 
-Each affected command md file will be updated with:
+## Adding a Plugin
 
-1. **Settings Reference section** at the top of the file:
-   ```markdown
-   ## Settings Reference
-   - `$LANGUAGE`: The language setting from plugin.json `settings.language`.
-     Override with `--lang=<value>` argument.
-     Presets: Korean, English, Japanese, Chinese.
-     Custom values also accepted (e.g., Spanish, Bahasa Indonesia).
-   ```
+1. Copy `templates/plugin/` to `plugins/<new-name>/` and rename the template directory.
+2. Update `plugins/<new-name>/.claude-plugin/plugin.json` — set `name`, `description`, `version`, `author`, optional `settings.language`.
+3. Add plugin source files (commands/, skills/, hooks/, agents/, etc.) following the 9-section XML house style for any SKILL.md / command md.
+4. Add an entry to `.claude-plugin/marketplace.json` `plugins` array. Keep alphabetical order via `jq '.plugins |= sort_by(.name)'` after insert.
+5. Bump `version` in both `plugin.json` and `marketplace.json` per CLAUDE.md.
+6. Run `bash scripts/validate.sh`. Exit 0 = PASS.
+7. Commit and push.
 
-2. **$LANGUAGE variable** replaces all hard-coded "Korean" references in the body:
-   ```markdown
-   - **Must be written in $LANGUAGE.**
-   ```
+The template scaffold includes `plugin.json` (with `author` placeholder), `README.md`, an example `SKILL.md` (9-section), and an example `command.md` (frontmatter + 9-section).
 
-3. **Examples**: Replace Korean examples with English examples to match the English documentation language. The `$LANGUAGE` instruction is sufficient to guide output language regardless of example language.
+## Constraints and Notes
 
----
+- **Reserved names**: `claude-code-marketplace`, `claude-code-plugins`, `anthropic-marketplace` cannot be used as marketplace names.
+- **File references**: plugins cannot reference files outside their own directory using `../` paths (because they are copied to a cache directory during installation).
+- **Path traversal**: `..` cannot be included in the source path.
+- **Plugin names**: kebab-case, no spaces.
+- **`${CLAUDE_PLUGIN_ROOT}`**: used to reference the plugin installation path in hooks and MCP server configurations.
 
-### git Plugin
+## Plugin Language Setting (Realized State)
 
-#### Scope
+The 2026-05-22 overhaul realized the previously-planned language setting. Current state:
 
-| Item | Decision | Rationale |
-|------|----------|-----------|
-| Setting level | Plugin-level unified setting | All 3 commands share one language setting |
-| Affected output | Artifacts only | Commit messages, PR title/body. Conversational output (questions, guidance, reports) is NOT affected |
-| Affected commands | git-commit, github-pr | git-rebase-stack is excluded (no artifacts; its Ground Rules for Korean conversation remain unchanged) |
+### Affected plugins
 
-#### Affected Artifacts by Command
+| Plugin | `settings.language` present | `$LANGUAGE` variable in body | `--lang=<value>` override |
+|--------|----------------------------|------------------------------|---------------------------|
+| `git` | YES (`"Korean"`) | Yes — `git-commit/SKILL.md`, `github-pr/SKILL.md` (subject/body/PR description) | Yes |
+| `linear` | YES (`"Korean"`) | Yes — `enrich-ticket.md` (interview + ticket body) | Yes |
+| `plan` | YES (`"Korean"`) | Yes — `deep-interview.md` (interview + spec body) | Yes |
+| `debug` | No | n/a (no language-dependent artifact) | n/a |
+| `core` | No | n/a (agents return findings in calling-session language) | n/a |
 
-**git-commit**
+### git plugin language scope
 
-| Part | Language Behavior |
-|------|-------------------|
-| type | English (fixed, e.g., `feat`, `fix`) |
-| scope | English (fixed, inferred from paths) |
-| subject description | Written in `$LANGUAGE` |
-| body | Written in `$LANGUAGE` |
-| footer (BREAKING CHANGE keyword) | English (fixed) |
-| footer (BREAKING CHANGE description) | English (fixed) |
+`git-rebase-stack.md` is exempt — its Ground Rules continue to mandate Korean for conversational output. Only `git-commit` and `github-pr` consume `$LANGUAGE`. Within those:
 
-**github-pr**
+- **git-commit**: subject description and body use `$LANGUAGE`; `type`/`scope`/`BREAKING CHANGE` keyword stay English.
+- **github-pr**: PR description portion and body content use `$LANGUAGE`; `type(scope)` and body section headers (`## Summary`, `## Changes`) and `Closes #N` stay English.
 
-| Part | Language Behavior |
-|------|-------------------|
-| PR title: type(scope) | English (fixed) |
-| PR title: description | Written in `$LANGUAGE` |
-| PR body: section headers (## Summary, ## Changes) | English (fixed) |
-| PR body: section content | Written in `$LANGUAGE` |
-| Issue linking (Closes #123) | English (fixed) |
+### Language presets and custom values
 
-**git-rebase-stack**
+Presets: Korean, English, Japanese, Chinese. ISO 639-1 codes (`ko`, `en`, `ja`, `zh`) are also accepted. Custom values (e.g., `Spanish`, `Bahasa Indonesia`) are passed through as-is.
 
-No artifacts — excluded from language setting. The existing Ground Rules ("All guidance, questions, and reports must be output in Korean") remain unchanged.
+## Smoke Tests
 
-#### Argument Parsing
+The `core` plugin's `SPEC.md` "Smoke Test Log" section records manual smoke-test runs of `core` agents/skills and cross-plugin wiring (most notably `debug`'s optional delegation to `core:reviewer`). See `plugins/core/SPEC.md` for the recorded prompts and pass criteria.
 
-For git-commit (currently accepts no `$ARGUMENTS`):
-- Now accepts optional `--lang=<value>` flag.
-- If `$ARGUMENTS` contains `--lang=<value>`, extract and use as language override.
-- All other arguments are ignored (same as before).
+## Overhaul History
 
-For github-pr (currently accepts `--draft`):
-- Now additionally accepts `--lang=<value>` flag.
-- Both flags can coexist: `/pr --draft --lang=en`
+The 2026-05-22 overhaul (consensus-planned, reviewed) introduced these key changes:
 
-For git-rebase-stack:
-- No change. Does not accept `--lang`.
-
-#### Implementation Checklist
-
-- [ ] Add `settings.language` field to `plugins/git/.claude-plugin/plugin.json`
-- [ ] Update `git-commit.md`: add Settings Reference, replace hard-coded Korean with `$LANGUAGE`, replace Korean examples with English, add `--lang` argument support
-- [ ] Update `github-pr.md`: add Settings Reference, replace hard-coded Korean with `$LANGUAGE`, replace Korean examples with English, add `--lang` argument support
-- [ ] Update `plugins/git/README.md`: document language setting and `--lang` flag
-- [ ] Bump plugin version in both `plugin.json` and `marketplace.json`
-
----
-
-### linear Plugin
-
-#### Scope
-
-| Item | Decision | Rationale |
-|------|----------|-----------|
-| Setting level | Plugin-level setting | enrich-ticket command uses the setting |
-| Affected output | Interview questions + ticket content | Both the interview questions asked to the user and the content written back to the Linear ticket are language-dependent |
-| Affected commands | enrich-ticket | Only command in this plugin |
-
-#### Affected Output
-
-**enrich-ticket**
-
-| Part | Language Behavior |
-|------|-------------------|
-| Interview questions (AskUserQuestion) | Written in `$LANGUAGE` |
-| Enriched ticket content written to Linear | Written in `$LANGUAGE` |
-
-#### Argument Parsing
-
-For enrich-ticket (currently accepts a Linear ticket URL as `$ARGUMENTS`):
-- Now additionally accepts optional `--lang=<value>` flag.
-- The URL and `--lang` flag can coexist: `/linear:enrich-ticket <URL> --lang=en`
-- If `--lang` is not provided, uses the default from plugin.json.
-
-#### Implementation Checklist
-
-- [ ] Add `settings.language` field to `plugins/linear/.claude-plugin/plugin.json`
-- [ ] Update `enrich-ticket.md`: add Settings Reference, replace hard-coded "Korean" Ground Rule with `$LANGUAGE`, add `--lang` argument support
-- [ ] Update `plugins/linear/README.md`: document language setting and `--lang` flag
-- [ ] Bump plugin version in both `plugin.json` and `marketplace.json`
-
----
-
-### plan Plugin
-
-#### Scope
-
-| Item | Decision | Rationale |
-|------|----------|-----------|
-| Setting level | Plugin-level setting | deep-interview command uses the setting |
-| Affected output | Interview questions + spec document | Both the interview questions and the generated spec document are language-dependent |
-| Affected commands | deep-interview | Only command in this plugin |
-
-#### Affected Output
-
-**deep-interview**
-
-| Part | Language Behavior |
-|------|-------------------|
-| Interview questions (AskUserQuestion) | Written in `$LANGUAGE` |
-| Generated spec document | Written in `$LANGUAGE` |
-
-#### Argument Parsing
-
-For deep-interview (currently accepts a request description as `$ARGUMENTS`):
-- Now additionally accepts optional `--lang=<value>` flag.
-- The request and `--lang` flag can coexist: `/plan:deep-interview <request> --lang=en`
-- If `--lang` is not provided, uses the default from plugin.json.
-
-#### Implementation Checklist
-
-- [ ] Add `settings.language` field to `plugins/plan/.claude-plugin/plugin.json`
-- [ ] Update `deep-interview.md`: add Settings Reference, add `$LANGUAGE` directive for interview and spec output, add `--lang` argument support
-- [ ] Update `plugins/plan/README.md`: document language setting and `--lang` flag
-- [ ] Bump plugin version in both `plugin.json` and `marketplace.json`
+- Removed: `ideate` (empty), `auto-harness`, `craft`, `session-harvester`.
+- Added: `core` plugin (4 agents + 2 skills + governance docs).
+- Aligned: `git`, `linear`, `plan`, `debug` to 9-section XML house style + `author` field + (where applicable) `settings.language`.
+- New governance: `scripts/validate.sh`, `templates/plugin/`, CLAUDE.md Multi-Phase Overhaul Exception, CLAUDE.md `author` requirement, CLAUDE.md `core` invocation convention, CLAUDE.md 9-section House Style.

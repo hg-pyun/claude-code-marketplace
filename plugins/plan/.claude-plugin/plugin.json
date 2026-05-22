@@ -1,5 +1,11 @@
 {
   "name": "plan",
-  "description": "Useful tool for planning with Claude code",
-  "version": "2026.03.24"
+  "description": "Automatically generates project spec documents through in-depth interviews",
+  "version": "2026.05.22",
+  "author": {
+    "name": "hg-pyun"
+  },
+  "settings": {
+    "language": "Korean"
+  }
 }
