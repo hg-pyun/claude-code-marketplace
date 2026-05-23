@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
-# Red test for US-4: scripts/cleanup.sh.
+# Red test for US-4: plugins/hg-pyun-tools/scripts/cleanup.sh.
 # Exercises: --slug, --all, --dry-run; retention session/day removed, permanent preserved.
 
 set -uo pipefail
 
-ROOT="$(cd "$(dirname "$0")/.." && pwd)"
-CLEANUP="$ROOT/scripts/cleanup.sh"
+HERE="$(cd "$(dirname "$0")" && pwd)"
+CLEANUP="$HERE/cleanup.sh"
 TMP="$(mktemp -d)"
 trap "rm -rf '$TMP'" EXIT
 

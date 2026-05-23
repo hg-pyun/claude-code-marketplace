@@ -1,18 +1,20 @@
 #!/usr/bin/env bash
 # Cleanup session/day retention artifacts under .specs/<slug>/.
-# Run:
-#   bash scripts/cleanup.sh --slug=<slug>           Remove session + expired day files for one slug.
-#   bash scripts/cleanup.sh --all                   Same, but for every slug under .specs/.
-#   bash scripts/cleanup.sh --slug=<slug> --dry-run List targets without removing.
-#   bash scripts/cleanup.sh --help                  Usage.
+# Run (from the project that owns the .specs/ tree):
+#   bash "$CLAUDE_PLUGIN_ROOT/scripts/cleanup.sh" --slug=<slug>           Remove session + expired day files for one slug.
+#   bash "$CLAUDE_PLUGIN_ROOT/scripts/cleanup.sh" --all                   Same, but for every slug under .specs/.
+#   bash "$CLAUDE_PLUGIN_ROOT/scripts/cleanup.sh" --slug=<slug> --dry-run List targets without removing.
+#   bash "$CLAUDE_PLUGIN_ROOT/scripts/cleanup.sh" --help                  Usage.
 #
 # Skips: retention=permanent (never removed automatically), files lacking a parseable descriptor.
 # SPECS_ROOT env var overrides the default .specs/ root (used by tests).
+# Default: $PWD/.specs — the caller's working directory, where ralph/team/autopilot
+# write their .specs/ tree. Script location is intentionally NOT used to anchor SPECS_ROOT,
+# because the plugin is installed under a cache dir unrelated to the user's project.
 
 set -uo pipefail
 
-ROOT="$(cd "$(dirname "$0")/.." && pwd)"
-SPECS_ROOT="${SPECS_ROOT:-$ROOT/.specs}"
+SPECS_ROOT="${SPECS_ROOT:-$PWD/.specs}"
 
 SLUG=""
 ALL=false
