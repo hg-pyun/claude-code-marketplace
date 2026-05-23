@@ -43,6 +43,20 @@
         "orchestration",
         "multi-agent"
       ]
+    },
+    {
+      "name": "linear-tools",
+      "source": "./plugins/linear-tools",
+      "description": "Linear ticket workflow toolkit by hg-pyun — interview-driven ticket enrichment via Linear MCP",
+      "version": "2026.05.23",
+      "keywords": [
+        "linear",
+        "ticket",
+        "enrich",
+        "interview",
+        "mcp",
+        "workflow"
+      ]
     }
   ]
 }

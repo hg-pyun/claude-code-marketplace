@@ -1,0 +1,11 @@
+{
+  "name": "linear-tools",
+  "description": "Linear ticket workflow toolkit by hg-pyun — interview-driven ticket enrichment via Linear MCP",
+  "version": "2026.05.23",
+  "author": {
+    "name": "hg-pyun"
+  },
+  "settings": {
+    "language": "Korean"
+  }
+}

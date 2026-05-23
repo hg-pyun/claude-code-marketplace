@@ -8,7 +8,7 @@
 #
 # Default checks (no flag):
 #   0. marketplace.json is valid JSON
-#   1. Plugin count equals 1
+#   1. Plugin count equals 2
 #   2. Orphan check: every entry has a directory; every directory has an entry
 #   3. Per-plugin version sync between plugin.json and marketplace.json
 #   4. Per-plugin `claude plugin validate --strict .` PASS
@@ -199,8 +199,8 @@ jq empty "$MARKETPLACE" 2>/dev/null || { echo "FAIL: $MARKETPLACE is invalid JSO
 
 # 1. Plugin count
 COUNT=$(jq '.plugins | length' "$MARKETPLACE")
-if [ "$COUNT" != "1" ]; then
-  echo "FAIL: expected 1 plugin in marketplace, got $COUNT"
+if [ "$COUNT" != "2" ]; then
+  echo "FAIL: expected 2 plugins in marketplace, got $COUNT"
   FAILED=1
 fi
 
@@ -275,7 +275,7 @@ for f in "${SKILL_FILES[@]}"; do
 done
 
 if [ "$FAILED" = "0" ]; then
-  echo "PASS: marketplace + 1 plugin validated"
+  echo "PASS: marketplace + 2 plugins validated"
 fi
 
 exit $FAILED
