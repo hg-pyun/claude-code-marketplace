@@ -7,10 +7,5 @@
 .omc/
 .clawhip/
 
-# .specs/<slug>/ hand-off sub-locations with session/day retention.
-# spec.md, plan.md, prd.json, progress.txt remain tracked (retention: permanent).
-.specs/*/state/
-.specs/*/artifacts/
-.specs/*/notepads/
-.specs/*/events.jsonl
-.specs/*/*.lock/
+# Local spec/handoff workspace — not tracked in the repo.
+.specs/
