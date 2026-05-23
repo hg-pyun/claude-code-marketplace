@@ -2,7 +2,7 @@
 
 > Personal multi-agent orchestration plugin for Claude Code — built and maintained by **hg-pyun**.
 
-A single bundled plugin that combines specialist **agents**, a full-lifecycle **orchestration pipeline**, and day-to-day **git / GitHub / Linear** helpers. Install once, get the entire toolkit.
+A single bundled plugin that combines specialist **agents**, a full-lifecycle **orchestration pipeline**, and day-to-day **git / GitHub** helpers. Install once, get the entire toolkit.
 
 ---
 
@@ -28,7 +28,7 @@ A single bundled plugin that combines specialist **agents**, a full-lifecycle **
 /plugin install dev-tools@hg-pyun-plugins
 ```
 
-The marketplace ships a single plugin. There is no `core` sub-plugin and no cross-plugin invocation prefix — every skill, command, and agent lives inside this plugin and is addressed by its bare name.
+Within `dev-tools` there is no `core` sub-plugin and no cross-plugin invocation prefix — every skill, command, and agent lives inside this plugin and is addressed by its bare name.
 
 ---
 
@@ -45,7 +45,6 @@ The marketplace ships a single plugin. There is no `core` sub-plugin and no cros
 | `/git-commit` | skill | Conventional-commit message + commit, in `$LANGUAGE`. |
 | `/github-pr` | skill | Conventional-commit-style PR title + body, in `$LANGUAGE`. |
 | `/git-rebase-stack` | command | Stacked-PR rebase via `git rebase --onto … --update-refs`. |
-| `/enrich-ticket` | command | Linear ticket interview-fill in `$LANGUAGE`. |
 | `/curl-debug` | skill | Run a cURL, reverse-trace failures to source. |
 
 Korean trigger phrases (e.g. `"커밋해줘"`, `"PR 만들어줘"`, `"끝까지 가줘"`) work in addition to the slash commands; see each skill's frontmatter for the full list.
@@ -175,12 +174,6 @@ Detects the base branch, pushes the current branch if needed, drafts a conventio
 
 Auto-detects the stack topology from the current branch and runs `git rebase --onto <base> <commit> --update-refs`. Use after the base branch moves, a middle PR merges, or the whole stack needs re-syncing. Output is always Korean per the marketplace SPEC.
 
-### Linear
-
-#### `/enrich-ticket <url> [--lang=<value>]`
-
-Reads a Linear ticket plus its comments and linked issues, conducts a guided interview to fill the missing rubric sections, and writes the enriched body back via the Linear MCP. Rubric headers stay English; content uses `$LANGUAGE`.
-
 ---
 
 ## `.specs/<slug>/` artifact layout
@@ -228,7 +221,6 @@ mv .specs/MY_SLUG.md .specs/MY_SLUG/spec.md
 |-------|---------------------|-------------------|
 | `git-commit` | Commit subject + body | `--lang=<value>` |
 | `github-pr` | PR description body | `--lang=<value>` |
-| `enrich-ticket` | Interview prompts + Linear body | `--lang=<value>` |
 | `deep-interview` | Interview prompts + spec body | `--lang=<value>` |
 
 **Exempt** (always conversation-language or always Korean): `git-rebase-stack`, `curl-debug`, `code-review`, all agents.
@@ -252,7 +244,6 @@ mv .specs/MY_SLUG.md .specs/MY_SLUG/spec.md
 
 | MCP | Required by | Fallback |
 |-----|-------------|----------|
-| **Linear** | `/enrich-ticket` | none — Linear MCP is required |
 | **GitHub** | `/github-pr`, stack PR lookups in `/git-rebase-stack` | `gh` CLI |
 
 ---

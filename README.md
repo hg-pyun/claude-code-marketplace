@@ -2,7 +2,7 @@
 
 > Personal Claude Code plugin marketplace — `hg-pyun-plugins`.
 
-A static GitHub-hosted marketplace shipping a single bundled plugin, **`dev-tools`**, that combines specialist agents, an end-to-end orchestration pipeline, and day-to-day git / GitHub / Linear helpers.
+A static GitHub-hosted marketplace shipping two focused plugins: **`dev-tools`** (specialist agents, end-to-end orchestration pipeline, git / GitHub helpers) and **`linear-tools`** (Linear ticket workflow helpers via Linear MCP).
 
 ---
 
@@ -12,14 +12,15 @@ A static GitHub-hosted marketplace shipping a single bundled plugin, **`dev-tool
 # 1. Add the marketplace
 /plugin marketplace add hg-pyun/claude-code-marketplace
 
-# 2. Install the plugin
+# 2. Install plugins (pick what you need)
 /plugin install dev-tools@hg-pyun-plugins
+/plugin install linear-tools@hg-pyun-plugins
 
 # 3. Pull updates later
 /plugin marketplace update
 ```
 
-That's it. One install path; everything below ships in the same plugin.
+Install only the plugins you need; each is independently versioned.
 
 ---
 
@@ -27,7 +28,8 @@ That's it. One install path; everything below ships in the same plugin.
 
 | Plugin | Description | Docs |
 |--------|-------------|------|
-| **dev-tools** | Unified toolkit — 9 specialist agents (reviewer / explorer / architect / critic / executor / test-engineer / doc-writer / performance-analyst / security-auditor) and 11 entrypoints across orchestration (`/autopilot`, `/deep-interview`, `/ralplan`, `/ralph`, `/team`), review & debugging (`/code-review`, `/curl-debug`), git & GitHub (`/git-commit`, `/github-pr`, `/git-rebase-stack`), and Linear (`/enrich-ticket`). | [README](plugins/dev-tools/README.md) · [SPEC](plugins/dev-tools/SPEC.md) |
+| **dev-tools** | Unified toolkit — 9 specialist agents (reviewer / explorer / architect / critic / executor / test-engineer / doc-writer / performance-analyst / security-auditor) and 10 entrypoints across orchestration (`/autopilot`, `/deep-interview`, `/ralplan`, `/ralph`, `/team`), review & debugging (`/code-review`, `/curl-debug`), git & GitHub (`/git-commit`, `/github-pr`, `/git-rebase-stack`). | [README](plugins/dev-tools/README.md) · [SPEC](plugins/dev-tools/SPEC.md) |
+| **linear-tools** | Linear ticket workflow toolkit — `/enrich-ticket` conducts a guided interview and writes a structured ticket body back via the Linear MCP. | [README](plugins/linear-tools/README.md) |
 
 For the marketplace's own architecture, schemas, validation rules, and governance, see **[SPEC.md](SPEC.md)**.
 
@@ -47,7 +49,7 @@ It runs `claude plugin validate --strict` against every plugin, then checks JSON
 
 ## Adding a new plugin
 
-The catalog currently ships one bundled plugin. If a future addition warrants a separate package:
+The catalog currently ships two plugins. To add another:
 
 1. Copy `templates/plugin/` to `plugins/<new-name>/` and rename the directory.
 2. Edit `plugins/<new-name>/.claude-plugin/plugin.json` — set `name`, `description`, `version`, `author` (object form), and `settings.language` if any output is language-dependent.

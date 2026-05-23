@@ -242,7 +242,7 @@ Examples:
 - **Skill**: invoke `dev-tools:deep-interview` (Phase 1), `dev-tools:ralplan` (Phase 2), `dev-tools:ralph` or `dev-tools:team` (Phase 3). One sub-skill per phase; sequential.
 - **Task**: delegate to `test-engineer` (Phase 4), and to `architect` + `critic` + `reviewer` + `security-auditor` + `performance-analyst` + `doc-writer` in parallel (Phase 5). Also to `executor` for Phase 4 Green steps when new Red tests are authored.
 - **AskUserQuestion**: confirm smart shortcuts at Phase 0; ask about retries at phase failure points.
-- Do NOT invoke `git-commit`, `github-pr`, `enrich-ticket` from inside autopilot.
+- Do NOT invoke `git-commit`, `github-pr`, `linear-tools:enrich-ticket` from inside autopilot.
 </Tool_Usage>
 
 <Examples>

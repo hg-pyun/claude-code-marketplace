@@ -29,7 +29,7 @@ For the user-facing entry, see [README.md](README.md). For per-file governance (
 | Repository | `hg-pyun/claude-code-marketplace` (public) |
 | Marketplace name | `hg-pyun-plugins` |
 | License | MIT |
-| Plugin count | 1 (`dev-tools`) |
+| Plugin count | 2 (`dev-tools`, `linear-tools`) |
 | Versioning | `YYYY.MM.DD[.patch]` |
 | Automation | Local `scripts/validate.sh`; no CI workflow |
 
@@ -39,27 +39,31 @@ A static GitHub repository serving the Claude Code plugin marketplace protocol. 
 
 ## Architecture
 
-### Single-plugin model
+### Plugin layout
 
-All assets live inside `plugins/dev-tools/`. Skills and commands invoke bundled agents via the Task tool with the **bare agent name** — no plugin prefix, because everything ships together:
+The marketplace ships two plugins, each independently installable and versioned:
 
-```text
-Task(subagent_type="reviewer", prompt="…")
-Task(subagent_type="executor", prompt="…")
-```
+- **`dev-tools`** bundles all specialist agents plus orchestration, review, debugging, and git/GitHub skills. Skills and commands invoke bundled agents via the Task tool with the **bare agent name** — no plugin prefix, because everything ships in the same plugin:
 
-The prior `core:<agent>` invocation form and the "missing-`core` fallback" contract were removed in the 2026-05-22.1 consolidation. They are not needed inside a single plugin.
+  ```text
+  Task(subagent_type="reviewer", prompt="…")
+  Task(subagent_type="executor", prompt="…")
+  ```
 
-### Why single-plugin
+  The prior `core:<agent>` invocation form and the "missing-`core` fallback" contract were removed in the 2026-05-22.1 consolidation. They are not needed because skills and commands that call the bundled agents remain within `dev-tools`.
 
-| Concern | Multi-plugin | Single-plugin (current) |
-|---------|--------------|-------------------------|
-| Install paths | 5 separate installs to get the full toolkit | 1 install |
-| Cross-plugin wiring | Required `core:` prefix + fallback shim | Bare agent names |
-| Version drift | 5 versions to keep in lock-step | 1 version |
-| Discoverability | Users had to know which sub-plugin owned which agent | Flat catalog |
+- **`linear-tools`** is a minimal standalone plugin housing Linear-MCP-driven ticket workflow assets (currently `/enrich-ticket`). It has no cross-plugin dependency on `dev-tools`.
 
-The bundle trades the option of installing a subset for a dramatically simpler invocation contract. Given this is a personal marketplace with cohesive toolchain semantics, the bundle wins.
+### Why this layout
+
+| Concern | Earlier multi-plugin (5 sub-plugins) | Current two-plugin layout |
+|---------|--------------------------------------|---------------------------|
+| Install paths | 5 separate installs to get the full toolkit | 1–2 installs, scoped by intent |
+| Cross-plugin wiring | Required `core:` prefix + fallback shim | None — each plugin is self-contained |
+| Version drift | 5 versions to keep in lock-step | 2 versions, each evolving on its own cadence |
+| Discoverability | Users had to know which sub-plugin owned which agent | `dev-tools` is the catch-all; `linear-tools` is the focused Linear toolkit |
+
+`dev-tools` keeps its bundle-of-related-tools character (agents + orchestration + git/GitHub are used together). `linear-tools` exists because the Linear-MCP-driven workflow is a different concern with a different MCP dependency, and bundling it forced every `dev-tools` user to carry that surface unnecessarily.
 
 ---
 
@@ -68,20 +72,24 @@ The bundle trades the option of installing a subset for a dramatically simpler i
 ```
 claude-code-marketplace/
 ├── .claude-plugin/
-│   └── marketplace.json        # Marketplace catalog (1 entry)
+│   └── marketplace.json        # Marketplace catalog (2 entries)
 ├── plugins/
-│   └── dev-tools/          # Unified plugin
+│   ├── dev-tools/              # Agents + orchestration + git/GitHub plugin
+│   │   ├── .claude-plugin/plugin.json
+│   │   ├── agents/             # reviewer, explorer, architect, critic, executor,
+│   │   │                       # test-engineer, doc-writer, performance-analyst,
+│   │   │                       # security-auditor
+│   │   ├── commands/           # git-rebase-stack
+│   │   ├── skills/             # autopilot, deep-interview, ralplan, ralph, team,
+│   │   │                       # code-review, curl-debug, git-commit, github-pr
+│   │   ├── scripts/            # cleanup.sh (.specs/<slug>/ retention purge)
+│   │   │                       # test-cleanup.sh (red test)
+│   │   ├── README.md
+│   │   └── SPEC.md
+│   └── linear-tools/           # Linear ticket workflow plugin
 │       ├── .claude-plugin/plugin.json
-│       ├── agents/             # reviewer, explorer, architect, critic, executor,
-│       │                       # test-engineer, doc-writer, performance-analyst,
-│       │                       # security-auditor
-│       ├── commands/           # enrich-ticket, git-rebase-stack
-│       ├── skills/             # autopilot, deep-interview, ralplan, ralph, team,
-│       │                       # code-review, curl-debug, git-commit, github-pr
-│       ├── scripts/            # cleanup.sh (.specs/<slug>/ retention purge)
-│       │                       # test-cleanup.sh (red test)
-│       ├── README.md
-│       └── SPEC.md
+│       ├── commands/           # enrich-ticket
+│       └── README.md
 ├── scripts/
 │   ├── validate.sh                    # Marketplace-level strict validation gate
 │   └── test-validate-descriptors.sh   # Red test for validate.sh --descriptors lane
@@ -154,7 +162,7 @@ claude-code-marketplace/
 | `description` | Y | One-line description. |
 | `version` | Y | Format per [CLAUDE.md](CLAUDE.md); must match the marketplace.json entry. |
 | `author` | Y | **Object form only** — `{ "name": "…" }`. String form is rejected by `claude plugin validate --strict`. |
-| `settings.language` | conditional | Required when the plugin ships language-dependent artifacts. `dev-tools` sets `Korean` for `git-commit`, `github-pr`, `enrich-ticket`, `deep-interview`. |
+| `settings.language` | conditional | Required when the plugin ships language-dependent artifacts. `dev-tools` sets `Korean` for `git-commit`, `github-pr`, `deep-interview`; `linear-tools` sets `Korean` for `enrich-ticket`. |
 
 ---
 
@@ -185,7 +193,7 @@ bash scripts/validate.sh
 Runs all of:
 
 0. `marketplace.json` is valid JSON (`jq empty`).
-1. Plugin count equals 1 (`dev-tools`).
+1. Plugin count equals 2 (`dev-tools`, `linear-tools`).
 2. Orphan check — every `marketplace.json` entry has a directory; every directory has an entry.
 3. Per-plugin version sync between `plugin.json` and `marketplace.json`.
 4. Per-plugin `claude plugin validate --strict .` PASS (diagnostic stderr surfaces directly).
@@ -239,18 +247,25 @@ If a future addition warrants a separate package:
 
 ## Plugin language setting
 
-`dev-tools` exposes `settings.language` (default `Korean`). Consumed by:
+Both plugins expose `settings.language` (default `Korean`).
+
+`dev-tools` consumers:
 
 | Asset | `$LANGUAGE` use | `--lang=<value>` override |
 |-------|----------------|---------------------------|
 | `skills/git-commit/SKILL.md` | Commit subject + body | Yes |
 | `skills/github-pr/SKILL.md` | PR body content | Yes |
-| `commands/enrich-ticket.md` | Interview prompts + Linear body | Yes |
 | `skills/deep-interview/SKILL.md` | Interview prompts + spec body | Yes |
 | `commands/git-rebase-stack.md` | n/a — always Korean per marketplace SPEC | n/a |
 | `skills/curl-debug/SKILL.md` | n/a — no static artifact | n/a |
 | `skills/code-review/SKILL.md` | n/a — calling-session language | n/a |
 | `agents/*.md` | n/a — calling-session language | n/a |
+
+`linear-tools` consumers:
+
+| Asset | `$LANGUAGE` use | `--lang=<value>` override |
+|-------|----------------|---------------------------|
+| `commands/enrich-ticket.md` | Interview prompts + Linear body | Yes |
 
 **Presets**: Korean, English, Japanese, Chinese. ISO 639-1 codes (`ko`, `en`, `ja`, `zh`) are also accepted. Custom values (e.g. `Spanish`, `Bahasa Indonesia`) are passed through verbatim.
 
@@ -263,3 +278,4 @@ If a future addition warrants a separate package:
 | **2026-05-22** | Marketplace overhaul — removed unused plugins, introduced the shared `core` plugin, adopted the 9-section XML house style across every SKILL.md / command md. |
 | **2026-05-22.1** | Consolidation — merged the 5-plugin layout (`core`, `debug`, `git`, `linear`, `plan`) into a single unified `dev-tools`. The `core:<agent>` prefix was retired across all skills, and the missing-`core` fallback contract was removed from `code-review` and `curl-debug`. Marketplace `metadata.version` bumped from `2026.05.22` → `2026.05.22.1`. |
 | **2026-05-23** | Introduced the artifact hand-off descriptor schema (`kind` / `path` / `contentHash` / `createdAt` / `producer` / `sizeBytes` / `retention` / `expiresAt` / `status`), the `--descriptors` validation lane, and the `.specs/<slug>/` storage layout with `state/`, `artifacts/ask/`, `notepads/`, and `events.jsonl`. Cleanup script for session / day retention added. |
+| **2026-05-23.3** | Extracted `enrich-ticket` from `dev-tools` into the new `linear-tools` plugin (marketplace now ships two plugins). `dev-tools` `description` / `keywords` lose the Linear vocabulary; `scripts/validate.sh` plugin-count assertion bumped from 1 to 2. Multi-Phase Overhaul Exception applied — version sync on the final commit only. |
