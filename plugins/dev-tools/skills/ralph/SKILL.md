@@ -53,7 +53,7 @@ Auto commit/PR is prohibited because this marketplace's commit and PR skills (`g
 - `--critic=critic`: use the `critic` agent for the approval pass instead of `reviewer`.
 
 **Cleanup step (7.5)**:
-- Default: invoke `Skill("hg-pyun-tools:code-review")` on changed files only.
+- Default: invoke `Skill("dev-tools:code-review")` on changed files only.
 - `--no-deslop`: skip the cleanup pass entirely. Use only when cleanup is intentionally out of scope.
 
 **Iteration cap**:
@@ -105,7 +105,7 @@ Examples:
 ### Step 1: PRD Bootstrap
 1. **Resolve slug**: from `--from-plan` path, or from the most recently modified `.specs/<slug>/plan.md`, or ask the user.
 2. **Check `.specs/<slug>/prd.json`**:
-   - If absent: scaffold it from `plan.md` Acceptance Criteria. Each AC becomes a story with `passes: false`. Use `Read` on `plan.md`, then `Write` the new `prd.json`. The scaffolded JSON MUST include a top-level `_descriptor` key with the OMC hand-off descriptor (kind=prd, producer=ralph, retention=permanent, status=pending). See `plugins/hg-pyun-tools/SPEC.md` for the full schema.
+   - If absent: scaffold it from `plan.md` Acceptance Criteria. Each AC becomes a story with `passes: false`. Use `Read` on `plan.md`, then `Write` the new `prd.json`. The scaffolded JSON MUST include a top-level `_descriptor` key with the OMC hand-off descriptor (kind=prd, producer=ralph, retention=permanent, status=pending). See `plugins/dev-tools/SPEC.md` for the full schema.
    - If present: validate JSON, list incomplete stories.
 3. **Refine generic criteria**: replace any scaffold AC like "Implementation is complete" with task-specific testable criteria (file:line, behavior, or runtime check). This is CRITICAL — generic ACs cannot be verified.
 4. **Initialize `.specs/<slug>/progress.txt`** if absent. Append session header with date + plan link.
@@ -183,9 +183,9 @@ Examples:
 20. **On APPROVE**: proceed to Step 7.5 immediately in the same turn. Do NOT pause to report — reporting happens at Step 8.
 
 ### Step 7.5: Cleanup Pass (skip if `--no-deslop`)
-21. **Invoke `Skill("hg-pyun-tools:code-review")`** scoped to changed files:
+21. **Invoke `Skill("dev-tools:code-review")`** scoped to changed files:
     ```
-    Skill("hg-pyun-tools:code-review", args="--scope=<changed file list>")
+    Skill("dev-tools:code-review", args="--scope=<changed file list>")
     ```
 22. **Apply ONLY the findings inside the changed-file set**. Do not expand the cleanup scope to unrelated files.
 23. **If cleanup introduces additional edits**, those edits become part of the same ralph batch (no separate commit).
@@ -247,7 +247,7 @@ Examples:
 - **Write/Edit**: update `prd.json` (story completion), append `progress.txt`, scaffold initial PRD from plan.
 - **Bash**: run tests / build / lint / typecheck for AC verification and regression. NO `git commit`, `git push`, `gh pr` — those are forbidden.
 - **Task**: delegate to `test-engineer` (Red), `executor` (Green / Refactor), `reviewer` or `critic` (approval), `architect` (3-fail escalation).
-- **Skill**: invoke `hg-pyun-tools:code-review` for Step 7.5 cleanup.
+- **Skill**: invoke `dev-tools:code-review` for Step 7.5 cleanup.
 - **TodoWrite**: track story-by-story progress in-session (in addition to `prd.json` for persistence).
 - Do NOT invoke `git-commit`, `github-pr`, `team`, `autopilot`, or any other mutation-oriented skill from inside ralph.
 </Tool_Usage>

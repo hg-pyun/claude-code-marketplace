@@ -10,10 +10,10 @@
   },
   "plugins": [
     {
-      "name": "hg-pyun-tools",
-      "source": "./plugins/hg-pyun-tools",
+      "name": "dev-tools",
+      "source": "./plugins/dev-tools",
       "description": "Unified Claude Code toolkit by hg-pyun — shared agents (reviewer/explorer/architect/critic/executor/test-engineer), multi-agent orchestration (autopilot/ralplan/ralph/team), git+github workflows, Linear enrichment, deep-interview planning, and cURL debugging in a single plugin",
-      "version": "2026.05.23.1",
+      "version": "2026.05.23.2",
       "keywords": [
         "git",
         "commit",

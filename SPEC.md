@@ -29,7 +29,7 @@ For the user-facing entry, see [README.md](README.md). For per-file governance (
 | Repository | `hg-pyun/claude-code-marketplace` (public) |
 | Marketplace name | `hg-pyun-plugins` |
 | License | MIT |
-| Plugin count | 1 (`hg-pyun-tools`) |
+| Plugin count | 1 (`dev-tools`) |
 | Versioning | `YYYY.MM.DD[.patch]` |
 | Automation | Local `scripts/validate.sh`; no CI workflow |
 
@@ -41,7 +41,7 @@ A static GitHub repository serving the Claude Code plugin marketplace protocol. 
 
 ### Single-plugin model
 
-All assets live inside `plugins/hg-pyun-tools/`. Skills and commands invoke bundled agents via the Task tool with the **bare agent name** — no plugin prefix, because everything ships together:
+All assets live inside `plugins/dev-tools/`. Skills and commands invoke bundled agents via the Task tool with the **bare agent name** — no plugin prefix, because everything ships together:
 
 ```text
 Task(subagent_type="reviewer", prompt="…")
@@ -70,7 +70,7 @@ claude-code-marketplace/
 ├── .claude-plugin/
 │   └── marketplace.json        # Marketplace catalog (1 entry)
 ├── plugins/
-│   └── hg-pyun-tools/          # Unified plugin
+│   └── dev-tools/          # Unified plugin
 │       ├── .claude-plugin/plugin.json
 │       ├── agents/             # reviewer, explorer, architect, critic, executor,
 │       │                       # test-engineer, doc-writer, performance-analyst,
@@ -154,7 +154,7 @@ claude-code-marketplace/
 | `description` | Y | One-line description. |
 | `version` | Y | Format per [CLAUDE.md](CLAUDE.md); must match the marketplace.json entry. |
 | `author` | Y | **Object form only** — `{ "name": "…" }`. String form is rejected by `claude plugin validate --strict`. |
-| `settings.language` | conditional | Required when the plugin ships language-dependent artifacts. `hg-pyun-tools` sets `Korean` for `git-commit`, `github-pr`, `enrich-ticket`, `deep-interview`. |
+| `settings.language` | conditional | Required when the plugin ships language-dependent artifacts. `dev-tools` sets `Korean` for `git-commit`, `github-pr`, `enrich-ticket`, `deep-interview`. |
 
 ---
 
@@ -185,7 +185,7 @@ bash scripts/validate.sh
 Runs all of:
 
 0. `marketplace.json` is valid JSON (`jq empty`).
-1. Plugin count equals 1 (`hg-pyun-tools`).
+1. Plugin count equals 1 (`dev-tools`).
 2. Orphan check — every `marketplace.json` entry has a directory; every directory has an entry.
 3. Per-plugin version sync between `plugin.json` and `marketplace.json`.
 4. Per-plugin `claude plugin validate --strict .` PASS (diagnostic stderr surfaces directly).
@@ -196,7 +196,7 @@ Exit `0` = PASS, `1` = any failure.
 
 ### Descriptors lane
 
-Opt-in lane for the artifact hand-off descriptor schema (see [plugin SPEC](plugins/hg-pyun-tools/SPEC.md)):
+Opt-in lane for the artifact hand-off descriptor schema (see [plugin SPEC](plugins/dev-tools/SPEC.md)):
 
 ```shell
 bash scripts/validate.sh --descriptors                   # incremental (default)
@@ -239,7 +239,7 @@ If a future addition warrants a separate package:
 
 ## Plugin language setting
 
-`hg-pyun-tools` exposes `settings.language` (default `Korean`). Consumed by:
+`dev-tools` exposes `settings.language` (default `Korean`). Consumed by:
 
 | Asset | `$LANGUAGE` use | `--lang=<value>` override |
 |-------|----------------|---------------------------|
@@ -261,5 +261,5 @@ If a future addition warrants a separate package:
 | Date | Change |
 |------|--------|
 | **2026-05-22** | Marketplace overhaul — removed unused plugins, introduced the shared `core` plugin, adopted the 9-section XML house style across every SKILL.md / command md. |
-| **2026-05-22.1** | Consolidation — merged the 5-plugin layout (`core`, `debug`, `git`, `linear`, `plan`) into a single unified `hg-pyun-tools`. The `core:<agent>` prefix was retired across all skills, and the missing-`core` fallback contract was removed from `code-review` and `curl-debug`. Marketplace `metadata.version` bumped from `2026.05.22` → `2026.05.22.1`. |
+| **2026-05-22.1** | Consolidation — merged the 5-plugin layout (`core`, `debug`, `git`, `linear`, `plan`) into a single unified `dev-tools`. The `core:<agent>` prefix was retired across all skills, and the missing-`core` fallback contract was removed from `code-review` and `curl-debug`. Marketplace `metadata.version` bumped from `2026.05.22` → `2026.05.22.1`. |
 | **2026-05-23** | Introduced the artifact hand-off descriptor schema (`kind` / `path` / `contentHash` / `createdAt` / `producer` / `sizeBytes` / `retention` / `expiresAt` / `status`), the `--descriptors` validation lane, and the `.specs/<slug>/` storage layout with `state/`, `artifacts/ask/`, `notepads/`, and `events.jsonl`. Cleanup script for session / day retention added. |

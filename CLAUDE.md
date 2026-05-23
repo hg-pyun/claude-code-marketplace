@@ -59,7 +59,7 @@ String form (`"author": "hg-pyun"`) is rejected by `claude plugin validate --str
 
 ## Agent Invocation Convention
 
-The `hg-pyun-tools` plugin bundles shared agents (`reviewer`, `explorer`, `architect`, `critic`) and the `code-review` skill alongside its commands. Other skills and commands delegate to the bundled agents via the Task tool:
+The `dev-tools` plugin bundles shared agents (`reviewer`, `explorer`, `architect`, `critic`) and the `code-review` skill alongside its commands. Other skills and commands delegate to the bundled agents via the Task tool:
 
 ```
 Task(
@@ -107,7 +107,7 @@ Plugins whose output language is configurable (commit messages, PR bodies, ticke
 
 Each language-dependent SKILL.md / command.md file references the variable as `$LANGUAGE` and includes a `<Settings_Reference>` block describing the variable and accepted values.
 
-Within `hg-pyun-tools`, exempt artifacts (do not consume `$LANGUAGE`):
+Within `dev-tools`, exempt artifacts (do not consume `$LANGUAGE`):
 - `commands/git-rebase-stack.md` — emits only conversational guidance/questions/reports, which stay in Korean per the marketplace SPEC.
 - `skills/curl-debug/SKILL.md` — no language-dependent artifact.
 - `skills/code-review/SKILL.md` — returns findings in the calling session's language.

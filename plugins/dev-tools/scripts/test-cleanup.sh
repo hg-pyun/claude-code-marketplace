@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Red test for US-4: plugins/hg-pyun-tools/scripts/cleanup.sh.
+# Red test for US-4: plugins/dev-tools/scripts/cleanup.sh.
 # Exercises: --slug, --all, --dry-run; retention session/day removed, permanent preserved.
 
 set -uo pipefail

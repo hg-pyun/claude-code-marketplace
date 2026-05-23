@@ -2,7 +2,7 @@
 
 > Personal Claude Code plugin marketplace — `hg-pyun-plugins`.
 
-A static GitHub-hosted marketplace shipping a single bundled plugin, **`hg-pyun-tools`**, that combines specialist agents, an end-to-end orchestration pipeline, and day-to-day git / GitHub / Linear helpers.
+A static GitHub-hosted marketplace shipping a single bundled plugin, **`dev-tools`**, that combines specialist agents, an end-to-end orchestration pipeline, and day-to-day git / GitHub / Linear helpers.
 
 ---
 
@@ -13,7 +13,7 @@ A static GitHub-hosted marketplace shipping a single bundled plugin, **`hg-pyun-
 /plugin marketplace add hg-pyun/claude-code-marketplace
 
 # 2. Install the plugin
-/plugin install hg-pyun-tools@hg-pyun-plugins
+/plugin install dev-tools@hg-pyun-plugins
 
 # 3. Pull updates later
 /plugin marketplace update
@@ -27,7 +27,7 @@ That's it. One install path; everything below ships in the same plugin.
 
 | Plugin | Description | Docs |
 |--------|-------------|------|
-| **hg-pyun-tools** | Unified toolkit — 9 specialist agents (reviewer / explorer / architect / critic / executor / test-engineer / doc-writer / performance-analyst / security-auditor) and 11 entrypoints across orchestration (`/autopilot`, `/deep-interview`, `/ralplan`, `/ralph`, `/team`), review & debugging (`/code-review`, `/curl-debug`), git & GitHub (`/git-commit`, `/github-pr`, `/git-rebase-stack`), and Linear (`/enrich-ticket`). | [README](plugins/hg-pyun-tools/README.md) · [SPEC](plugins/hg-pyun-tools/SPEC.md) |
+| **dev-tools** | Unified toolkit — 9 specialist agents (reviewer / explorer / architect / critic / executor / test-engineer / doc-writer / performance-analyst / security-auditor) and 11 entrypoints across orchestration (`/autopilot`, `/deep-interview`, `/ralplan`, `/ralph`, `/team`), review & debugging (`/code-review`, `/curl-debug`), git & GitHub (`/git-commit`, `/github-pr`, `/git-rebase-stack`), and Linear (`/enrich-ticket`). | [README](plugins/dev-tools/README.md) · [SPEC](plugins/dev-tools/SPEC.md) |
 
 For the marketplace's own architecture, schemas, validation rules, and governance, see **[SPEC.md](SPEC.md)**.
 

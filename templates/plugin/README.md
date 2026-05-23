@@ -30,7 +30,7 @@
 ## Agent invocations
 
 <!--
-  This marketplace ships as a single unified plugin (`hg-pyun-tools`). Skills
+  This marketplace ships as a single unified plugin (`dev-tools`). Skills
   and commands invoke bundled agents with the BARE agent name — no plugin
   prefix:
 
@@ -38,7 +38,7 @@
 
   The prior `core:<agent>` form and the missing-`core` fallback contract were
   removed in the 2026-05-22.1 consolidation. If your new plugin needs an agent
-  that lives in `hg-pyun-tools`, just reference it by its bare name. List the
+  that lives in `dev-tools`, just reference it by its bare name. List the
   agents you invoke here, e.g.:
 
   - `reviewer` — for severity-rated diff review

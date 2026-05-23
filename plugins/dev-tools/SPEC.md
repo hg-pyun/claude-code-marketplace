@@ -1,4 +1,4 @@
-# hg-pyun-tools — Internal Spec
+# dev-tools — Internal Spec
 
 Internal contracts for the **artifact lifecycle** that every orchestration skill in this plugin shares: where files live, what metadata they carry, when they expire, and how the validator enforces all of it.
 
@@ -125,7 +125,7 @@ For CI, prefer the default `--descriptors` (incremental) lane, which only checks
 
 ## Retention & cleanup
 
-Three retention classes drive the cleanup script (`plugins/hg-pyun-tools/scripts/cleanup.sh`, invoked at runtime as `bash "${CLAUDE_PLUGIN_ROOT}/scripts/cleanup.sh"`):
+Three retention classes drive the cleanup script (`plugins/dev-tools/scripts/cleanup.sh`, invoked at runtime as `bash "${CLAUDE_PLUGIN_ROOT}/scripts/cleanup.sh"`):
 
 | Retention | Used for | Cleanup trigger |
 |-----------|----------|-----------------|

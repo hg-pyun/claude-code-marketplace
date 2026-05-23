@@ -136,14 +136,14 @@ Findings:
 <Good>
 **Advisor mode — Outdated link**
 
-Input: reviewer points doc-writer at `plugins/hg-pyun-tools/README.md` after a skill was renamed from `commit` to `git-commit`.
+Input: reviewer points doc-writer at `plugins/dev-tools/README.md` after a skill was renamed from `commit` to `git-commit`.
 
 Finding:
 ```
 Findings:
   - severity: MAJOR
     category: Outdated
-    location: "plugins/hg-pyun-tools/README.md:34"
+    location: "plugins/dev-tools/README.md:34"
     message: "Skill referenced as 'commit' but the skill directory is 'git-commit'."
     evidence: "Line 34: '| commit | Auto-generate git commits |'"
     recommendation: |
@@ -165,7 +165,7 @@ Finding:
 Findings:
   - severity: MAJOR
     category: Missing
-    location: "plugins/hg-pyun-tools/README.md §git-commit"
+    location: "plugins/dev-tools/README.md §git-commit"
     message: "The --lang argument introduced in skills/git-commit/SKILL.md is not documented in the README."
     evidence: "SKILL.md line 12: '--lang=<value>   Override output language'. README §git-commit has no Arguments table."
     recommendation: |

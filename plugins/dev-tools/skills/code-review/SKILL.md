@@ -21,7 +21,7 @@ Produce a severity-rated review of the current diff (or a specified file) using 
 </Do_Not_Use_When>
 
 <Why_This_Exists>
-Free-form "looks good" reviews consume time without informing decisions. Severity-rated reviews let the user triage: fix CRITICALs now, batch MAJORs, defer MINORs. This skill is the canonical entrypoint for that triage style in the `hg-pyun-tools` plugin, and uses the `reviewer`, `security-auditor`, and `doc-writer` advisors in parallel so all callers get consistent multi-domain coverage.
+Free-form "looks good" reviews consume time without informing decisions. Severity-rated reviews let the user triage: fix CRITICALs now, batch MAJORs, defer MINORs. This skill is the canonical entrypoint for that triage style in the `dev-tools` plugin, and uses the `reviewer`, `security-auditor`, and `doc-writer` advisors in parallel so all callers get consistent multi-domain coverage.
 </Why_This_Exists>
 
 <Execution_Policy>

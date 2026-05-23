@@ -125,7 +125,7 @@ Examples:
 ### Phase 1: Expansion (deep-interview)
 6. **If not skipped**:
    ```
-   Skill("hg-pyun-tools:deep-interview", args="<idea> --threshold=<value>")
+   Skill("dev-tools:deep-interview", args="<idea> --threshold=<value>")
    ```
 7. **Wait for completion**. Read `.specs/<slug>/spec.md`.
 8. **Verify success**: confirm `Status: PASSED` (not `EARLY_EXIT` or `HARD_CAP` unless user accepts).
@@ -134,7 +134,7 @@ Examples:
 ### Phase 2: Planning (ralplan)
 10. **If not skipped**:
     ```
-    Skill("hg-pyun-tools:ralplan", args="--from-spec=.specs/<slug>/spec.md {--deliberate if set}")
+    Skill("dev-tools:ralplan", args="--from-spec=.specs/<slug>/spec.md {--deliberate if set}")
     ```
 11. **Wait for completion**. Read `.specs/<slug>/plan.md`.
 12. **Verify Status**: must be `pending approval` (not `best-effort consensus not reached`). If consensus was not reached, ask user whether to accept best-effort or restart Phase 2.
@@ -146,9 +146,9 @@ Examples:
     - Announce the choice and the rationale.
 14. **Invoke**:
     ```
-    Skill("hg-pyun-tools:ralph", args="--from-plan=.specs/<slug>/plan.md")
+    Skill("dev-tools:ralph", args="--from-plan=.specs/<slug>/plan.md")
     // OR
-    Skill("hg-pyun-tools:team", args="--from-plan=.specs/<slug>/plan.md")
+    Skill("dev-tools:team", args="--from-plan=.specs/<slug>/plan.md")
     ```
 15. **Wait for completion**. Read `.specs/<slug>/prd.json` and the latest `progress.txt` or `team-final.md`.
 16. **Verify success**: all stories `passes: true`, reviewer / critic APPROVE, post-cleanup regression GREEN.
@@ -239,7 +239,7 @@ Examples:
 - **Read**: load `.specs/<slug>/*.md`, `prd.json`, sub-skill outputs.
 - **Write**: write `autopilot-validation.md` consolidating Phase 5 verdicts; append `progress.txt`.
 - **Bash**: `mkdir -p .specs/<slug>/`, run test/build/lint between phases for verification.
-- **Skill**: invoke `hg-pyun-tools:deep-interview` (Phase 1), `hg-pyun-tools:ralplan` (Phase 2), `hg-pyun-tools:ralph` or `hg-pyun-tools:team` (Phase 3). One sub-skill per phase; sequential.
+- **Skill**: invoke `dev-tools:deep-interview` (Phase 1), `dev-tools:ralplan` (Phase 2), `dev-tools:ralph` or `dev-tools:team` (Phase 3). One sub-skill per phase; sequential.
 - **Task**: delegate to `test-engineer` (Phase 4), and to `architect` + `critic` + `reviewer` + `security-auditor` + `performance-analyst` + `doc-writer` in parallel (Phase 5). Also to `executor` for Phase 4 Green steps when new Red tests are authored.
 - **AskUserQuestion**: confirm smart shortcuts at Phase 0; ask about retries at phase failure points.
 - Do NOT invoke `git-commit`, `github-pr`, `enrich-ticket` from inside autopilot.

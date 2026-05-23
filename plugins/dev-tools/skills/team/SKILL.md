@@ -79,7 +79,7 @@ Auto commit/PR prohibition matches `ralph`'s boundary: the marketplace's commit/
 - Fallback: if native tools are unavailable, workers write directly to `.specs/<slug>/prd.json` to report completion, and the lead polls the file via Read between stage steps.
 
 **Hand-off descriptor frontmatter** (team-*.md handoff docs):
-Every `team-<stage>.md` written by the lead MUST open with this OMC descriptor frontmatter before the heading. See `plugins/hg-pyun-tools/SPEC.md` for the full schema.
+Every `team-<stage>.md` written by the lead MUST open with this OMC descriptor frontmatter before the heading. See `plugins/dev-tools/SPEC.md` for the full schema.
 
 ```yaml
 ---
@@ -218,7 +218,7 @@ Examples:
 15. **Write `.specs/<slug>/team-verify.md`** handoff: combined findings list, severity counts, decisions about which stories return to fix.
 
 ### Stage 4.5: team-cleanup (skip if `--no-deslop`)
-16. **Invoke** `Skill("hg-pyun-tools:code-review", args="--scope=<changed files>")`.
+16. **Invoke** `Skill("dev-tools:code-review", args="--scope=<changed files>")`.
 17. **Apply ONLY findings inside the changed-file set**. Same scope boundary as ralph Step 7.5.
 18. **Re-run regression** (full test/build/lint on changed files). If it fails, roll back the offending cleanup edit and retry up to 2x. If still failing, mark cleanup pass as best-effort and proceed.
 
@@ -277,7 +277,7 @@ Examples:
 - **Write/Edit**: handoff docs (`team-*.md`), `prd.json` story updates, `progress.txt` appendices.
 - **Bash**: run tests / build / lint / typecheck for AC verification. NO `git commit`, `git push`, `gh pr`.
 - **Task**: workers per stage routing (`explorer` for plan discovery, `architect` for decomposition + 3-fail escalation, `test-engineer` for Red, `executor` for Green/Refactor/Fix, `reviewer` + `critic` for Stage 4 verify).
-- **Skill**: invoke `hg-pyun-tools:code-review` for Stage 4.5 cleanup.
+- **Skill**: invoke `dev-tools:code-review` for Stage 4.5 cleanup.
 - **ToolSearch**: load `TeamCreate` / `TaskCreate` / `SendMessage` schemas before Stage 3 if planning to use native multi-agent tools (otherwise fallback to direct `prd.json` write).
 - **TodoWrite**: track wave-by-wave progress in-session.
 - Do NOT invoke `git-commit`, `github-pr`, `ralph`, `autopilot`, `ralplan` from inside team.

@@ -1,4 +1,4 @@
-# hg-pyun-tools
+# dev-tools
 
 > Personal multi-agent orchestration plugin for Claude Code — built and maintained by **hg-pyun**.
 
@@ -25,7 +25,7 @@ A single bundled plugin that combines specialist **agents**, a full-lifecycle **
 
 ```shell
 /plugin marketplace add hg-pyun/claude-code-marketplace
-/plugin install hg-pyun-tools@hg-pyun-plugins
+/plugin install dev-tools@hg-pyun-plugins
 ```
 
 The marketplace ships a single plugin. There is no `core` sub-plugin and no cross-plugin invocation prefix — every skill, command, and agent lives inside this plugin and is addressed by its bare name.
