@@ -1,55 +1,64 @@
-# Claude Code Marketplace for personal
+# claude-code-marketplace
 
-Personal Claude Code plugin marketplace (`hg-pyun-plugins`). After the 2026-05-22 consolidation, this marketplace ships a single unified plugin (`hg-pyun-tools`) bundling all agents, commands, and skills.
+> Personal Claude Code plugin marketplace — `hg-pyun-plugins`.
 
-## Usage
+A static GitHub-hosted marketplace shipping a single bundled plugin, **`hg-pyun-tools`**, that combines specialist agents, an end-to-end orchestration pipeline, and day-to-day git / GitHub / Linear helpers.
 
-### Add marketplace
+---
+
+## Quickstart
 
 ```shell
+# 1. Add the marketplace
 /plugin marketplace add hg-pyun/claude-code-marketplace
-```
 
-### Install the plugin
-
-```shell
+# 2. Install the plugin
 /plugin install hg-pyun-tools@hg-pyun-plugins
-```
 
-### Update marketplace
-
-```shell
+# 3. Pull updates later
 /plugin marketplace update
 ```
 
-## Plugin
+That's it. One install path; everything below ships in the same plugin.
 
-- [hg-pyun-tools](plugins/hg-pyun-tools/README.md) — Unified toolkit: shared `reviewer`/`explorer`/`architect`/`critic` agents + `/git-commit`, `/github-pr`, `/git-rebase-stack`, `/enrich-ticket`, `/deep-interview`, `/curl-debug`, `/code-review`.
+---
 
-See [SPEC.md](SPEC.md) for architecture, directory structure, and design decisions.
+## What's inside
 
-## Adding a Plugin
+| Plugin | Description | Docs |
+|--------|-------------|------|
+| **hg-pyun-tools** | Unified toolkit — 9 specialist agents (reviewer / explorer / architect / critic / executor / test-engineer / doc-writer / performance-analyst / security-auditor) and 11 entrypoints across orchestration (`/autopilot`, `/deep-interview`, `/ralplan`, `/ralph`, `/team`), review & debugging (`/code-review`, `/curl-debug`), git & GitHub (`/git-commit`, `/github-pr`, `/git-rebase-stack`), and Linear (`/enrich-ticket`). | [README](plugins/hg-pyun-tools/README.md) · [SPEC](plugins/hg-pyun-tools/SPEC.md) |
 
-The marketplace today contains a single bundled plugin. If a future addition warrants a separate package:
+For the marketplace's own architecture, schemas, validation rules, and governance, see **[SPEC.md](SPEC.md)**.
 
-1. Copy `templates/plugin/` to `plugins/<plugin-name>/` and rename the template directory.
-2. Update `plugins/<plugin-name>/.claude-plugin/plugin.json` — set `name`, `description`, `version`, `author`, optional `settings.language`.
-3. Add plugin source files (commands/, skills/, hooks/, agents/) following the 9-section XML house style for any SKILL.md / command.md.
-4. Add an entry to `.claude-plugin/marketplace.json` `plugins` array; keep alphabetical order via `jq '.plugins |= sort_by(.name)'` after insert.
-5. Bump `version` in both `plugin.json` and `marketplace.json` per [CLAUDE.md](CLAUDE.md), and update the validator's expected plugin count.
-6. Run `bash scripts/validate.sh`. Exit 0 = PASS.
-7. Commit and push.
+---
 
 ## Validation
 
-Run the local validator before committing or opening a PR:
+Run the local validator before every commit or PR:
 
 ```shell
 bash scripts/validate.sh
 ```
 
-It runs `claude plugin validate --strict` on every plugin, checks JSON sanity, plugin count, orphans, version sync between `plugin.json` and `marketplace.json`, and the 9-section SKILL.md house style. See [SPEC.md](SPEC.md#validation) for details.
+It runs `claude plugin validate --strict` against every plugin, then checks JSON sanity, plugin count, orphans, version sync between `plugin.json` and `marketplace.json`, the 9-section SKILL.md house style, and the canonical version format. Exit `0` = PASS. See [SPEC.md → Validation](SPEC.md#validation) for the full check list and the opt-in `--descriptors` lane for artifact metadata.
+
+---
+
+## Adding a new plugin
+
+The catalog currently ships one bundled plugin. If a future addition warrants a separate package:
+
+1. Copy `templates/plugin/` to `plugins/<new-name>/` and rename the directory.
+2. Edit `plugins/<new-name>/.claude-plugin/plugin.json` — set `name`, `description`, `version`, `author` (object form), and `settings.language` if any output is language-dependent.
+3. Author source files following the [9-section XML house style](CLAUDE.md#9-section-skillmd-house-style).
+4. Append an entry to `.claude-plugin/marketplace.json` `plugins`; keep alphabetical order via `jq '.plugins |= sort_by(.name)'`.
+5. Bump `version` in both `plugin.json` and the matching marketplace.json entry per [CLAUDE.md](CLAUDE.md), and update the validator's expected plugin count.
+6. Run `bash scripts/validate.sh`. Exit `0` is the gate.
+7. Commit and push.
+
+---
 
 ## License
 
-MIT
+MIT — see [LICENSE](LICENSE).
