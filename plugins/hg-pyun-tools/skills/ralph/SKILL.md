@@ -105,7 +105,7 @@ Examples:
 ### Step 1: PRD Bootstrap
 1. **Resolve slug**: from `--from-plan` path, or from the most recently modified `.specs/<slug>/plan.md`, or ask the user.
 2. **Check `.specs/<slug>/prd.json`**:
-   - If absent: scaffold it from `plan.md` Acceptance Criteria. Each AC becomes a story with `passes: false`. Use `Read` on `plan.md`, then `Write` the new `prd.json`.
+   - If absent: scaffold it from `plan.md` Acceptance Criteria. Each AC becomes a story with `passes: false`. Use `Read` on `plan.md`, then `Write` the new `prd.json`. The scaffolded JSON MUST include a top-level `_descriptor` key with the OMC hand-off descriptor (kind=prd, producer=ralph, retention=permanent, status=pending). See `plugins/hg-pyun-tools/SPEC.md` for the full schema.
    - If present: validate JSON, list incomplete stories.
 3. **Refine generic criteria**: replace any scaffold AC like "Implementation is complete" with task-specific testable criteria (file:line, behavior, or runtime check). This is CRITICAL — generic ACs cannot be verified.
 4. **Initialize `.specs/<slug>/progress.txt`** if absent. Append session header with date + plan link.
@@ -154,6 +154,12 @@ Examples:
 ### Step 5: Mark Story Complete
 14. **Update `prd.json`**: set `stories[i].passes = true`, add `completedAt` timestamp, attach evidence references (test file path + last passing run summary).
 15. **Append to `progress.txt`**: story ID, behavior implemented, files changed, learnings or patterns discovered, anything unexpected.
+15a. **Update `.specs/<slug>/notepads/` (cross-iteration memory)**: append ISO8601-timestamped sections to the appropriate file:
+   - `notepads/learnings.md` — patterns or facts discovered that future stories can rely on
+   - `notepads/decisions.md` — choices made between options + their rationale
+   - `notepads/issues.md` — open questions surfaced but not resolved in this story
+   - `notepads/problems.md` — verification failures or escalations
+   Create the `notepads/` directory and the 4 files lazily (only on first write). Each section header uses the form `## <ISO8601> — US-<id>` so later passes can resume by story. These files are session/day retention; do not commit them.
 
 ### Step 6: PRD Completion Check
 16. **Read `prd.json` again**. Are ALL stories `passes: true`?

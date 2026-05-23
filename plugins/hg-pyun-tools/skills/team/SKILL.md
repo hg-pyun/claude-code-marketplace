@@ -77,6 +77,49 @@ Auto commit/PR prohibition matches `ralph`'s boundary: the marketplace's commit/
 **Native vs fallback tools**:
 - Prefer native multi-agent tools (`TeamCreate`, `TaskCreate`, `SendMessage`) when available — load them via ToolSearch before Stage 3.
 - Fallback: if native tools are unavailable, workers write directly to `.specs/<slug>/prd.json` to report completion, and the lead polls the file via Read between stage steps.
+
+**Hand-off descriptor frontmatter** (team-*.md handoff docs):
+Every `team-<stage>.md` written by the lead MUST open with this OMC descriptor frontmatter before the heading. See `plugins/hg-pyun-tools/SPEC.md` for the full schema.
+
+```yaml
+---
+kind: handoff
+path: .specs/<slug>/team-<stage>.md
+contentHash: sha256:<hash of body below>
+createdAt: <ISO8601-now>
+producer: team
+sizeBytes: <byte count of body below>
+retention: permanent
+expiresAt: null
+status: complete
+---
+```
+
+**mkdir-based lock helper** (for concurrent writes to `state/team.json`, `prd.json`, `events.jsonl`):
+The lead and any parallel worker that writes to a shared file MUST acquire a lock before opening for write and release it after the write completes. Lock primitive: directory creation (`mkdir <target>.lock/`) is atomic on single-host filesystems. NFS is out-of-scope.
+
+```bash
+# acquire
+attempts=0; delay_ms=100; max=10
+while ! mkdir "<target>.lock" 2>/dev/null; do
+  attempts=$((attempts+1))
+  [ $attempts -ge $max ] && { echo "lock acquire timeout"; exit 1; }
+  # multiplicative jitter: delay * random(0.8, 1.2)
+  jittered=$(( delay_ms * (80 + RANDOM % 41) / 100 ))
+  sleep "$(awk -v ms=$jittered 'BEGIN{print ms/1000}')"
+  delay_ms=$(( delay_ms * 2 ))
+  [ $delay_ms -gt 2000 ] && delay_ms=2000
+done
+echo "$$ $(date -u +%FT%TZ)" > "<target>.lock/owner.txt"
+# ... do the write ...
+# release
+rm -f "<target>.lock/owner.txt" && rmdir "<target>.lock"
+```
+
+If acquire times out (max 10 retries, initial 100 ms, cap 2 s, multiplicative jitter ±20%), the worker MUST report up to the lead instead of overwriting; the lead serializes the critical section in the main session.
+
+**events.jsonl writer** (team mode only; under lock):
+Stage 3 / Stage 5 may append one JSON line per coordination event. Acquire the events.jsonl lock first, then append, then release. Each line is a self-contained JSON object with `event`, `ts`, `actor`, `payload`. The file is session/day retention; do not commit it.
 </Execution_Policy>
 
 <Settings_Reference>

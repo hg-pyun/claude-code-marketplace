@@ -48,12 +48,14 @@ Auto commit/PR prohibition matches `ralph` and `team`. The marketplace's `git-co
 - If `.specs/<slug>/plan.md` exists with `Status: pending approval` or `approved` → skip Phases 1-2.
 - If `.specs/<slug>/prd.json` exists with at least one `passes: true` story → ask the user whether to resume or restart.
 
-**Failure-mode stopping**:
-- Phase 1 fails (deep-interview hits hard cap without reaching threshold) → stop with status `PHASE1_AMBIGUOUS`; do not advance.
-- Phase 2 fails (ralplan consensus not reached after 5 iterations) → stop with status `PHASE2_NO_CONSENSUS`.
-- Phase 3 fails (ralph / team escalates to architect or hits hard cap) → stop with status `PHASE3_BLOCKED`.
-- Phase 4 fails (same QA error persists 3 cycles) → stop with status `PHASE4_QA_STUCK`; fundamental issue requires human input.
-- Phase 5 fails (any Hard block or Soft block condition — see Phase 5 stratified verdict below) → return to Phase 3 with the findings; max 2 Phase 5 retries.
+**Failure-mode stopping** (every terminal path below MUST run Phase 6 cleanup first for any `retention: session` artifacts under `.specs/<slug>/` before exiting; see "Guaranteed cleanup teardown" below):
+- Phase 1 fails (deep-interview hits hard cap without reaching threshold) → run Phase 6 cleanup, then stop with status `PHASE1_AMBIGUOUS`; do not advance.
+- Phase 2 fails (ralplan consensus not reached after 5 iterations) → run Phase 6 cleanup, then stop with status `PHASE2_NO_CONSENSUS`.
+- Phase 3 fails (ralph / team escalates to architect or hits hard cap) → run Phase 6 cleanup, then stop with status `PHASE3_BLOCKED`.
+- Phase 4 fails (same QA error persists 3 cycles) → run Phase 6 cleanup, then stop with status `PHASE4_QA_STUCK`; fundamental issue requires human input.
+- Phase 5 fails (any Hard block or Soft block condition — see Phase 5 stratified verdict below) → return to Phase 3 with the findings; max 2 Phase 5 retries. On final failure (retries exhausted), run Phase 6 cleanup, then stop with status `PHASE5_REJECTED`.
+
+**Guaranteed cleanup teardown**: Phase 6 cleanup MUST execute on every terminal path of autopilot, including the escalation stops above. The cleanup step calls `bash scripts/cleanup.sh --slug=<slug>` (or equivalent inline behavior) to remove `retention: session` artifacts under `.specs/<slug>/artifacts/ask/`, `.specs/<slug>/state/`, and other session-retention paths. `retention: permanent` artifacts (spec.md, plan.md, prd.json, SPEC.md) are always preserved.
 
 **Phase 5 stratified verdict (6-advisor)**:
 - **Hard block (REJECT)**: any of reviewer / architect / critic / security-auditor returns REJECT, or any of those 4 advisors returns at least one CRITICAL finding at HIGH confidence → re-entry to Phase 3.
@@ -175,20 +177,43 @@ Examples:
 19. **Update progress.txt** with QA cycle summary.
 
 ### Phase 5: Validation (multi-perspective)
-20. **Fire 6 perspectives in parallel** (single message, 6 Task calls):
+20. **Fire 6 perspectives in parallel** (single message, 6 Task calls). Each advisor MUST also persist findings to `.specs/<slug>/artifacts/ask/<agent>-<ISO8601>.md` with the hand-off descriptor frontmatter (see template after the Task block):
     ```
     [
       Task(subagent_type="architect", prompt="Full-system architectural review of the changes.
-        Focus: SOLID violations, scalability concerns, integration risks. Files changed: <list>."),
+        Focus: SOLID violations, scalability concerns, integration risks. Files changed: <list>.
+        <hand-off directive — see template below>"),
       Task(subagent_type="critic", prompt="Adversarial review. Steelman the strongest case AGAINST
         the chosen implementation. Identify principle-option inconsistencies and missed alternatives.
-        Files changed: <list>."),
+        Files changed: <list>.
+        <hand-off directive — see template below>"),
       Task(subagent_type="reviewer", prompt="Severity-rated diff review. Confirm spec compliance
-        (against .specs/<slug>/spec.md) and code quality. Return CRITICAL/MAJOR/MINOR with confidence."),
-      Task(subagent_type="security-auditor", prompt="Security-focused review using AuthN/AuthZ/Secret/Crypto/Injection/SAST/Config categories. Return Findings with severity, location, evidence, confidence."),
-      Task(subagent_type="performance-analyst", prompt="Performance review using Hotpath/Complexity/IO/Memory/Cache categories. Return Findings."),
-      Task(subagent_type="doc-writer", prompt="Do not call Write/Edit during this invocation. Return diff-shaped recommendations only. Documentation review using Missing/Outdated/Inconsistent/Unclear categories. Return Findings.")
+        (against .specs/<slug>/spec.md) and code quality. Return CRITICAL/MAJOR/MINOR with confidence.
+        <hand-off directive — see template below>"),
+      Task(subagent_type="security-auditor", prompt="Security-focused review using AuthN/AuthZ/Secret/Crypto/Injection/SAST/Config categories. Return Findings with severity, location, evidence, confidence.
+        <hand-off directive — see template below>"),
+      Task(subagent_type="performance-analyst", prompt="Performance review using Hotpath/Complexity/IO/Memory/Cache categories. Return Findings.
+        <hand-off directive — see template below>"),
+      Task(subagent_type="doc-writer", prompt="Do not call Write/Edit during this invocation. Return diff-shaped recommendations only. Documentation review using Missing/Outdated/Inconsistent/Unclear categories. Return Findings.
+        <hand-off directive — see template below>")
     ]
+    ```
+
+    **Hand-off directive template** (append to each Task prompt above):
+    ```
+    Also persist your findings to `.specs/<slug>/artifacts/ask/<agent-name>-<ISO8601>.md` with this YAML frontmatter at the top:
+    ---
+    kind: advisor
+    path: .specs/<slug>/artifacts/ask/<agent-name>-<ISO8601>.md
+    contentHash: sha256:<sha256 of the body content below, excluding this frontmatter block>
+    createdAt: <ISO8601-now>
+    producer: <agent-name>
+    sizeBytes: <byte count of the body content below>
+    retention: session
+    expiresAt: null
+    status: complete
+    ---
+    followed by the same Findings body as the in-session reply. The writing agent computes `contentHash` and `sizeBytes` at write time. doc-writer note: this Write of the findings file is the only Write allowed during this invocation.
     ```
 21. **Combine verdicts** using the Phase 5 stratified verdict rule (defined in `<Execution_Policy>`):
     - Hard block → return to Phase 3 with the findings. Max 2 Phase 5 retries.

@@ -150,13 +150,31 @@ Examples:
    e. If 5 iterations reached without APPROVE, proceed to Phase 6 with `Status: best-effort, consensus not reached`.
 
 ### Phase 6: Finalize
-11. **Write the plan** to `.specs/<slug>/plan.md` with the structure below.
+11. **Write the plan** to `.specs/<slug>/plan.md` with the structure below. The file MUST open with the OMC hand-off descriptor frontmatter described below before the `# Plan:` heading.
 12. **(--interactive only) Final approval**: `AskUserQuestion` with options:
    - [Approve and proceed to ralph]
    - [Approve and proceed to team]
    - [Request changes — back to Phase 2]
    - [Reject — keep artifact but stop]
 13. **Without --interactive**: write file, report path, stop. Do NOT auto-invoke ralph/team.
+
+**Hand-off descriptor frontmatter** (OMC parity; see `plugins/hg-pyun-tools/SPEC.md` for full schema):
+
+```yaml
+---
+kind: plan
+path: .specs/<slug>/plan.md
+contentHash: sha256:<hash of body below>
+createdAt: <ISO8601-now>
+producer: ralplan
+sizeBytes: <byte count of body below>
+retention: permanent
+expiresAt: null
+status: pending        # or approved (after user approval) | best-effort
+---
+```
+
+The legacy `Status: pending approval` line inside the `## Metadata` block remains for backward compatibility, mapped to descriptor `status: pending`.
 
 ### Plan Structure (`.specs/<slug>/plan.md`)
 

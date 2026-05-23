@@ -228,8 +228,24 @@ After the mode is used, return to normal Socratic questioning.
 When ambiguity ≤ threshold OR hard cap reached OR early exit chosen:
 
 1. **Slugify** the title for the filename.
-2. **Write** the spec to `.specs/<slug>/spec.md` (create `.specs/<slug>/` if missing).
+2. **Write** the spec to `.specs/<slug>/spec.md` (create `.specs/<slug>/` if missing). The file MUST open with the OMC hand-off descriptor frontmatter described below before the `# Deep Interview Spec:` heading.
 3. **Show** the user the absolute path of the written file.
+
+**Hand-off descriptor frontmatter** (OMC parity; see `plugins/hg-pyun-tools/SPEC.md` for full schema):
+
+```yaml
+---
+kind: spec
+path: .specs/<slug>/spec.md
+contentHash: sha256:<hash of body below>
+createdAt: <ISO8601-now>
+producer: deep-interview
+sizeBytes: <byte count of body below>
+retention: permanent
+expiresAt: null
+status: PASSED        # or EARLY_EXIT | HARD_CAP
+---
+```
 
 Spec structure (headers stay English; content in `$LANGUAGE`):
 
