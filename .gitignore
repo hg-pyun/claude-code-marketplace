@@ -6,3 +6,11 @@
 # Runtime state from external tools that may run inside this repo
 .omc/
 .clawhip/
+
+# .specs/<slug>/ hand-off sub-locations with session/day retention.
+# spec.md, plan.md, prd.json, progress.txt remain tracked (retention: permanent).
+.specs/*/state/
+.specs/*/artifacts/
+.specs/*/notepads/
+.specs/*/events.jsonl
+.specs/*/*.lock/
