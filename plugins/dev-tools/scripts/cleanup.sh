@@ -7,14 +7,14 @@
 #   bash "$CLAUDE_PLUGIN_ROOT/scripts/cleanup.sh" --help                  Usage.
 #
 # Skips: retention=permanent (never removed automatically), files lacking a parseable descriptor.
-# SPECS_ROOT env var overrides the default .dt-handoff/ root (used by tests).
+# HANDOFF_ROOT env var overrides the default .dt-handoff/ root (used by tests).
 # Default: $PWD/.dt-handoff — the caller's working directory, where ralph/team/autopilot
-# write their .dt-handoff/ tree. Script location is intentionally NOT used to anchor SPECS_ROOT,
+# write their .dt-handoff/ tree. Script location is intentionally NOT used to anchor HANDOFF_ROOT,
 # because the plugin is installed under a cache dir unrelated to the user's project.
 
 set -uo pipefail
 
-SPECS_ROOT="${SPECS_ROOT:-$PWD/.dt-handoff}"
+HANDOFF_ROOT="${HANDOFF_ROOT:-$PWD/.dt-handoff}"
 
 SLUG=""
 ALL=false
@@ -133,9 +133,9 @@ _process_slug() {
 }
 
 if [ "$ALL" = "true" ]; then
-  for d in "$SPECS_ROOT"/*/; do
+  for d in "$HANDOFF_ROOT"/*/; do
     [ -d "$d" ] && _process_slug "${d%/}"
   done
 else
-  _process_slug "$SPECS_ROOT/$SLUG"
+  _process_slug "$HANDOFF_ROOT/$SLUG"
 fi

@@ -28,7 +28,7 @@ mkdir -p "$TMP/specs/sample"
 cat > "$TMP/specs/sample/spec.md" <<'EOF'
 ---
 kind: spec
-path: .specs/sample/spec.md
+path: .dt-handoff/sample/spec.md
 contentHash: sha256:abc123
 createdAt: 2026-05-23T00:00:00Z
 producer: deep-interview
@@ -49,7 +49,7 @@ echo "Test 3: invalid descriptor sample (missing required field) exits 1"
 cat > "$TMP/specs/sample/bad.md" <<'EOF'
 ---
 kind: spec
-path: .specs/sample/bad.md
+path: .dt-handoff/sample/bad.md
 status: PASSED
 ---
 # Missing required fields
@@ -64,7 +64,7 @@ echo "Test 4: invalid status enum value exits 1"
 cat > "$TMP/specs/sample/badstatus.md" <<'EOF'
 ---
 kind: spec
-path: .specs/sample/badstatus.md
+path: .dt-handoff/sample/badstatus.md
 contentHash: sha256:abc123
 createdAt: 2026-05-23T00:00:00Z
 producer: deep-interview
@@ -85,7 +85,7 @@ cat > "$TMP/specs/sample/prd.json" <<'EOF'
 {
   "_descriptor": {
     "kind": "prd",
-    "path": ".specs/sample/prd.json",
+    "path": ".dt-handoff/sample/prd.json",
     "contentHash": "sha256:abc123",
     "createdAt": "2026-05-23T00:00:00Z",
     "producer": "ralph",

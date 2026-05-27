@@ -15,11 +15,11 @@ FAILED=0
 pass() { echo "  PASS: $1"; PASSED=$((PASSED+1)); }
 fail() { echo "  FAIL: $1"; FAILED=$((FAILED+1)); }
 
-# Fixture: a fake .specs root with one slug containing mixed retention files.
-mkdir -p "$TMP/.specs/test-slug/artifacts/ask" "$TMP/.specs/test-slug/state" "$TMP/.specs/test-slug/notepads"
+# Fixture: a fake .dt-handoff root with one slug containing mixed retention files.
+mkdir -p "$TMP/.dt-handoff/test-slug/artifacts/ask" "$TMP/.dt-handoff/test-slug/state" "$TMP/.dt-handoff/test-slug/notepads"
 
 # session-retention advisor file (should be removed)
-cat > "$TMP/.specs/test-slug/artifacts/ask/architect-2026-05-23T00-00-00.md" <<'EOF'
+cat > "$TMP/.dt-handoff/test-slug/artifacts/ask/architect-2026-05-23T00-00-00.md" <<'EOF'
 ---
 kind: advisor
 path: artifacts/ask/architect-2026-05-23T00-00-00.md
@@ -35,7 +35,7 @@ findings
 EOF
 
 # permanent spec.md (should be preserved)
-cat > "$TMP/.specs/test-slug/spec.md" <<'EOF'
+cat > "$TMP/.dt-handoff/test-slug/spec.md" <<'EOF'
 ---
 kind: spec
 path: spec.md
@@ -51,7 +51,7 @@ spec body
 EOF
 
 # day-retention state.json with expired expiresAt (should be removed)
-cat > "$TMP/.specs/test-slug/state/ralph.json" <<'EOF'
+cat > "$TMP/.dt-handoff/test-slug/state/ralph.json" <<'EOF'
 {
   "_descriptor": {
     "kind": "state",
@@ -68,7 +68,7 @@ cat > "$TMP/.specs/test-slug/state/ralph.json" <<'EOF'
 EOF
 
 # day-retention with future expiresAt (should be preserved)
-cat > "$TMP/.specs/test-slug/state/team.json" <<'EOF'
+cat > "$TMP/.dt-handoff/test-slug/state/team.json" <<'EOF'
 {
   "_descriptor": {
     "kind": "state",
@@ -93,9 +93,9 @@ else
 fi
 
 echo "Test 2: --dry-run --slug=test-slug lists session/expired but does NOT remove"
-out=$(SPECS_ROOT="$TMP/.specs" bash "$CLEANUP" --slug=test-slug --dry-run 2>&1) || true
-if [ -f "$TMP/.specs/test-slug/artifacts/ask/architect-2026-05-23T00-00-00.md" ] \
-   && [ -f "$TMP/.specs/test-slug/state/ralph.json" ] \
+out=$(HANDOFF_ROOT="$TMP/.dt-handoff" bash "$CLEANUP" --slug=test-slug --dry-run 2>&1) || true
+if [ -f "$TMP/.dt-handoff/test-slug/artifacts/ask/architect-2026-05-23T00-00-00.md" ] \
+   && [ -f "$TMP/.dt-handoff/test-slug/state/ralph.json" ] \
    && echo "$out" | grep -q 'architect-2026-05-23' \
    && echo "$out" | grep -q 'ralph.json'; then
   pass "Test 2 — dry-run lists targets without removing"
@@ -104,16 +104,16 @@ else
 fi
 
 echo "Test 3: --slug=test-slug removes retention:session + expired retention:day"
-SPECS_ROOT="$TMP/.specs" bash "$CLEANUP" --slug=test-slug >/dev/null 2>&1 || true
-if [ ! -f "$TMP/.specs/test-slug/artifacts/ask/architect-2026-05-23T00-00-00.md" ] \
-   && [ ! -f "$TMP/.specs/test-slug/state/ralph.json" ]; then
+HANDOFF_ROOT="$TMP/.dt-handoff" bash "$CLEANUP" --slug=test-slug >/dev/null 2>&1 || true
+if [ ! -f "$TMP/.dt-handoff/test-slug/artifacts/ask/architect-2026-05-23T00-00-00.md" ] \
+   && [ ! -f "$TMP/.dt-handoff/test-slug/state/ralph.json" ]; then
   pass "Test 3 — session/expired removed"
 else
   fail "Test 3 — session or expired file remains"
 fi
 
 echo "Test 4: permanent (spec.md) and future-day (team.json) preserved"
-if [ -f "$TMP/.specs/test-slug/spec.md" ] && [ -f "$TMP/.specs/test-slug/state/team.json" ]; then
+if [ -f "$TMP/.dt-handoff/test-slug/spec.md" ] && [ -f "$TMP/.dt-handoff/test-slug/state/team.json" ]; then
   pass "Test 4 — permanent + future-day preserved"
 else
   fail "Test 4 — permanent or future-day was incorrectly removed"
