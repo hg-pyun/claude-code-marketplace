@@ -105,7 +105,7 @@ Examples:
 ### Step 1: PRD Bootstrap
 1. **Resolve slug**: from `--from-plan` path, or from the most recently modified `.specs/<slug>/plan.md`, or ask the user.
 2. **Check `.specs/<slug>/prd.json`**:
-   - If absent: scaffold it from `plan.md` Acceptance Criteria. Each AC becomes a story with `passes: false`. Use `Read` on `plan.md`, then `Write` the new `prd.json`. The scaffolded JSON MUST include a top-level `_descriptor` key with the OMC hand-off descriptor (kind=prd, producer=ralph, retention=permanent, status=pending). See `plugins/dev-tools/SPEC.md` for the full schema.
+   - If absent: scaffold it from `plan.md` Acceptance Criteria. Each AC becomes a story with `passes: false`. Use `Read` on `plan.md`, then `Write` the new `prd.json`. The scaffolded JSON MUST include a top-level `_descriptor` key with the OMC hand-off descriptor (kind=prd, producer=ralph, retention=permanent, status=pending). See `plugins/dev-tools/CLAUDE.md` (Artifact hand-off descriptor schema) for the full schema.
    - If present: validate JSON, list incomplete stories.
 3. **Refine generic criteria**: replace any scaffold AC like "Implementation is complete" with task-specific testable criteria (file:line, behavior, or runtime check). This is CRITICAL — generic ACs cannot be verified.
 4. **Initialize `.specs/<slug>/progress.txt`** if absent. Append session header with date + plan link.
@@ -309,7 +309,7 @@ Flow: stop immediately. Update progress.txt with `Status: USER_HALTED at story <
 - `impl` — production-code story (executor leads after Red).
 - `refactor` — pure refactor (TDD exception applies; cite existing coverage in evidence).
 - `infra` — config, build, CI changes (executor + reviewer focus on safety not behavior).
-- `docs` — README/SPEC.md updates (skip test-engineer; reviewer focuses on accuracy).
+- `docs` — README/CLAUDE.md updates (skip test-engineer; reviewer focuses on accuracy).
 
 ## Tier Mapping for Reviewer Step
 | Surface | Tier | Approver |

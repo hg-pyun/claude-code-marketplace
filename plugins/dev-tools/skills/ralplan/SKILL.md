@@ -158,7 +158,7 @@ Examples:
    - [Reject — keep artifact but stop]
 13. **Without --interactive**: write file, report path, stop. Do NOT auto-invoke ralph/team.
 
-**Hand-off descriptor frontmatter** (OMC parity; see `plugins/dev-tools/SPEC.md` for full schema):
+**Hand-off descriptor frontmatter** (OMC parity; see `plugins/dev-tools/CLAUDE.md` → Artifact hand-off descriptor schema for full schema):
 
 ```yaml
 ---

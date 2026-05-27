@@ -17,8 +17,8 @@
   configurable (e.g., commit messages, PR bodies, ticket content, spec docs).
   If your plugin produces NO language-dependent artifact (e.g., a pure debug
   tool, a shared-agents-only plugin), DELETE the `settings` block from both
-  this README and `.claude-plugin/plugin.json`. See SPEC.md
-  "Plugin Language Setting" for the exemption list.
+  this README and `.claude-plugin/plugin.json`. See the root CLAUDE.md
+  "settings.language standard" for the exemption list.
 -->
 
 ```json

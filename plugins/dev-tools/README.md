@@ -146,7 +146,7 @@ PRD-driven sequential persistence loop. Reads `.specs/<slug>/prd.json`, picks th
 
 Five-stage parallel pipeline: **plan → prd → exec → verify → fix**. Decomposes into independent stories, fires `executor` and `test-engineer` in parallel waves, then runs `reviewer` + `critic` in Stage 4. Use when the plan has ≥ 3 independent surfaces; otherwise prefer `ralph`.
 
-Stops at "ready for commit". Single-host filesystem only — see [SPEC.md → Deployment Assumption](./SPEC.md#deployment-assumption).
+Stops at "ready for commit". Single-host filesystem only — see [CLAUDE.md → Deployment assumption](./CLAUDE.md#deployment-assumption).
 
 ### Review & debugging
 
@@ -194,7 +194,7 @@ Every orchestration skill writes under a single slug directory:
 └── autopilot-validation.md  # autopilot Phase 5 consolidated verdicts
 ```
 
-See [SPEC.md](./SPEC.md) for the **Artifact Hand-off Descriptor Schema** that every spec / plan / prd file carries.
+See [CLAUDE.md](./CLAUDE.md#artifact-hand-off-descriptor-schema) for the **Artifact Hand-off Descriptor Schema** that every spec / plan / prd file carries.
 
 ### Migrating legacy `.specs/` files
 
@@ -236,7 +236,7 @@ mv .specs/MY_SLUG.md .specs/MY_SLUG/spec.md
 - **Structural headers** in PRs, specs, plans, and Linear tickets (`## Summary`, `## Goal`, `## Acceptance Criteria`, …) **stay English**; only their content is translated.
 - **Real newlines** in PR bodies — never escaped `\n` literals.
 - **Orchestration skills never auto-commit** — they hand back control at "ready for commit".
-- **Every SKILL.md / command.md** uses the [9-section XML house style](../../CLAUDE.md#9-section-skillmd-house-style).
+- **Every SKILL.md / command.md** uses the [9-section XML house style](../../CLAUDE.md#9-section-house-style).
 
 ---
 

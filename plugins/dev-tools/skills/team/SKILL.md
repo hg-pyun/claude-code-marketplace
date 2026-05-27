@@ -79,7 +79,7 @@ Auto commit/PR prohibition matches `ralph`'s boundary: the marketplace's commit/
 - Fallback: if native tools are unavailable, workers write directly to `.specs/<slug>/prd.json` to report completion, and the lead polls the file via Read between stage steps.
 
 **Hand-off descriptor frontmatter** (team-*.md handoff docs):
-Every `team-<stage>.md` written by the lead MUST open with this OMC descriptor frontmatter before the heading. See `plugins/dev-tools/SPEC.md` for the full schema.
+Every `team-<stage>.md` written by the lead MUST open with this OMC descriptor frontmatter before the heading. See `plugins/dev-tools/CLAUDE.md` (Artifact hand-off descriptor schema) for the full schema.
 
 ```yaml
 ---

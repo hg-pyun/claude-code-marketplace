@@ -55,7 +55,7 @@ Auto commit/PR prohibition matches `ralph` and `team`. The marketplace's `git-co
 - Phase 4 fails (same QA error persists 3 cycles) → run Phase 6 cleanup, then stop with status `PHASE4_QA_STUCK`; fundamental issue requires human input.
 - Phase 5 fails (any Hard block or Soft block condition — see Phase 5 stratified verdict below) → return to Phase 3 with the findings; max 2 Phase 5 retries. On final failure (retries exhausted), run Phase 6 cleanup, then stop with status `PHASE5_REJECTED`.
 
-**Guaranteed cleanup teardown**: Phase 6 cleanup MUST execute on every terminal path of autopilot, including the escalation stops above. The cleanup step calls `bash "${CLAUDE_PLUGIN_ROOT}/scripts/cleanup.sh" --slug=<slug>` (or equivalent inline behavior) to remove `retention: session` artifacts under `.specs/<slug>/artifacts/ask/`, `.specs/<slug>/state/`, and other session-retention paths. `retention: permanent` artifacts (spec.md, plan.md, prd.json, SPEC.md) are always preserved.
+**Guaranteed cleanup teardown**: Phase 6 cleanup MUST execute on every terminal path of autopilot, including the escalation stops above. The cleanup step calls `bash "${CLAUDE_PLUGIN_ROOT}/scripts/cleanup.sh" --slug=<slug>` (or equivalent inline behavior) to remove `retention: session` artifacts under `.specs/<slug>/artifacts/ask/`, `.specs/<slug>/state/`, and other session-retention paths. `retention: permanent` artifacts (spec.md, plan.md, prd.json) are always preserved.
 
 **Phase 5 stratified verdict (6-advisor)**:
 - **Hard block (REJECT)**: any of reviewer / architect / critic / security-auditor returns REJECT, or any of those 4 advisors returns at least one CRITICAL finding at HIGH confidence → re-entry to Phase 3.

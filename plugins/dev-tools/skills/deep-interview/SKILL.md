@@ -231,7 +231,7 @@ When ambiguity ≤ threshold OR hard cap reached OR early exit chosen:
 2. **Write** the spec to `.specs/<slug>/spec.md` (create `.specs/<slug>/` if missing). The file MUST open with the OMC hand-off descriptor frontmatter described below before the `# Deep Interview Spec:` heading.
 3. **Show** the user the absolute path of the written file.
 
-**Hand-off descriptor frontmatter** (OMC parity; see `plugins/dev-tools/SPEC.md` for full schema):
+**Hand-off descriptor frontmatter** (OMC parity; see `plugins/dev-tools/CLAUDE.md` → Artifact hand-off descriptor schema for full schema):
 
 ```yaml
 ---
