@@ -2,7 +2,7 @@
 # Local strict validation gate for claude-code-marketplace (hg-pyun-plugins).
 # Run: bash scripts/validate.sh                          (default lane; exit 0 = PASS; 1 = failure)
 #      bash scripts/validate.sh --descriptors            (descriptors lane only; incremental default)
-#      bash scripts/validate.sh --descriptors --all      (full .specs/ traversal)
+#      bash scripts/validate.sh --descriptors --all      (full .dt-handoff/ traversal)
 #      bash scripts/validate.sh --descriptors --target=<path>  (single-file check)
 #      bash scripts/validate.sh --descriptors --help     (lane usage)
 #
@@ -17,9 +17,19 @@
 #      (anchored regex; fenced code blocks stripped to avoid false positives)
 #
 # Descriptors lane (--descriptors):
-#   - .md files: 8-field OMC descriptor frontmatter + status enum
-#   - .json files: `_descriptor` reserved key with same schema
-#   - Enums: kind, retention, status
+#   - .md files: descriptor as YAML frontmatter; .json files: `_descriptor` key.
+#   - Required fields: kind, path, contentHash, createdAt, producer, sizeBytes, retention, expiresAt, status.
+#   - Optional field: verdict (review / judgment artifacts only).
+#   - Enums: kind, retention, status, verdict (see DESC_* vars below = machine source of truth).
+#
+# Handoff contract (human mirror; the DESC_* vars below are the machine truth):
+#   - Artifact root: .dt-handoff/<slug>/ — spec.md, plan.md, prd.json, progress.txt,
+#     state/, artifacts/ask/, notepads/, events.jsonl; summaries team-final.md, autopilot-validation.md.
+#   - skill->agent input  : @handoff-in block {kind, path, contentHash, sizeBytes}; agent reads
+#     path and verifies contentHash. Inline the body only when sizeBytes <= INLINE_MAX_BYTES (4096).
+#   - agent->skill return : @handoff-out block {kind, path, status, verdict?, contentHash, sizeBytes,
+#     summary}; the caller routes on verdict (no prose keyword matching). Body is written once to
+#     path (single source); the return carries pointer + summary only.
 #
 # README.md files are excluded from the 9-section check.
 
@@ -47,6 +57,7 @@ done
 DESC_KIND_ENUM="spec plan prd advisor notepad state handoff trace"
 DESC_RETENTION_ENUM="session day permanent"
 DESC_STATUS_ENUM="pending approved complete failed cancelled PASSED EARLY_EXIT HARD_CAP"
+DESC_VERDICT_ENUM="APPROVE ACCEPT_WITH_RESERVATIONS ITERATE REVISE REJECT"
 DESC_REQUIRED_FIELDS="kind path contentHash createdAt producer sizeBytes retention expiresAt status"
 
 _desc_enum_contains() {
@@ -92,6 +103,12 @@ _desc_check_md() {
     echo "  $file: invalid status '$status' (expected one of: $DESC_STATUS_ENUM)"
     err=1
   fi
+  local verdict
+  verdict=$(printf '%s\n' "$fm" | awk -F: '$1=="verdict" {sub(/^[ \t]+/, "", $2); print $2; exit}')
+  if [ -n "$verdict" ] && ! _desc_enum_contains "$DESC_VERDICT_ENUM" "$verdict"; then
+    echo "  $file: invalid verdict '$verdict' (expected one of: $DESC_VERDICT_ENUM)"
+    err=1
+  fi
   return $err
 }
 
@@ -131,6 +148,12 @@ _desc_check_json() {
     echo "  $file: invalid _descriptor.status '$status'"
     err=1
   fi
+  local verdict
+  verdict=$(jq -r '._descriptor.verdict // empty' "$file")
+  if [ -n "$verdict" ] && ! _desc_enum_contains "$DESC_VERDICT_ENUM" "$verdict"; then
+    echo "  $file: invalid _descriptor.verdict '$verdict'"
+    err=1
+  fi
   return $err
 }
 
@@ -142,7 +165,7 @@ _desc_pick_targets() {
   fi
   local base
   if [ "$DESCRIPTORS_ALL" = "true" ]; then
-    find "$ROOT/.specs" -type f \( -name '*.md' -o -name '*.json' \) 2>/dev/null | grep -v 'research-' || true
+    find "$ROOT/.dt-handoff" -type f \( -name '*.md' -o -name '*.json' \) 2>/dev/null | grep -v 'research-' || true
     return
   fi
   # Incremental: git merge-base HEAD origin/main, fallback HEAD~1
@@ -150,24 +173,24 @@ _desc_pick_targets() {
   if [ -z "$base" ]; then
     return  # no base; nothing to check incrementally
   fi
-  cd "$ROOT" && git diff --name-only --diff-filter=AM "$base"..HEAD -- '.specs/**/*.md' '.specs/**/*.json' 2>/dev/null | grep -v 'research-' || true
+  cd "$ROOT" && git diff --name-only --diff-filter=AM "$base"..HEAD -- '.dt-handoff/**/*.md' '.dt-handoff/**/*.json' 2>/dev/null | grep -v 'research-' || true
 }
 
 run_descriptors_lane() {
   if [ "$DESCRIPTORS_HELP" = "true" ]; then
     echo "descriptors lane usage:"
     echo "  --descriptors                  incremental default (git merge-base HEAD origin/main, fallback HEAD~1)"
-    echo "  --descriptors --all            full .specs/ traversal"
+    echo "  --descriptors --all            full .dt-handoff/ traversal"
     echo "  --descriptors --target=<path>  single-file check"
     echo ""
-    echo "Schema: 8 required fields (kind, path, contentHash, createdAt, producer, sizeBytes, retention, expiresAt) + status."
-    echo "Enums: kind={$DESC_KIND_ENUM}, retention={$DESC_RETENTION_ENUM}, status={$DESC_STATUS_ENUM}"
+    echo "Schema: 8 required fields (kind, path, contentHash, createdAt, producer, sizeBytes, retention, expiresAt) + status; optional verdict."
+    echo "Enums: kind={$DESC_KIND_ENUM}, retention={$DESC_RETENTION_ENUM}, status={$DESC_STATUS_ENUM}, verdict={$DESC_VERDICT_ENUM}"
     return 0
   fi
   local targets count=0 errs=0
   targets=$(_desc_pick_targets)
   if [ -z "$targets" ]; then
-    echo "descriptors lane: no targets (incremental mode, no .specs/ changes)"
+    echo "descriptors lane: no targets (incremental mode, no .dt-handoff/ changes)"
     return 0
   fi
   while IFS= read -r f; do

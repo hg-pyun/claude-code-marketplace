@@ -7,5 +7,5 @@
 .omc/
 .clawhip/
 
-# Local spec/handoff workspace — not tracked in the repo.
-.specs/
+# Local handoff workspace — not tracked in the repo.
+.dt-handoff/

@@ -1,20 +1,20 @@
 #!/usr/bin/env bash
-# Cleanup session/day retention artifacts under .specs/<slug>/.
-# Run (from the project that owns the .specs/ tree):
+# Cleanup session/day retention artifacts under .dt-handoff/<slug>/.
+# Run (from the project that owns the .dt-handoff/ tree):
 #   bash "$CLAUDE_PLUGIN_ROOT/scripts/cleanup.sh" --slug=<slug>           Remove session + expired day files for one slug.
-#   bash "$CLAUDE_PLUGIN_ROOT/scripts/cleanup.sh" --all                   Same, but for every slug under .specs/.
+#   bash "$CLAUDE_PLUGIN_ROOT/scripts/cleanup.sh" --all                   Same, but for every slug under .dt-handoff/.
 #   bash "$CLAUDE_PLUGIN_ROOT/scripts/cleanup.sh" --slug=<slug> --dry-run List targets without removing.
 #   bash "$CLAUDE_PLUGIN_ROOT/scripts/cleanup.sh" --help                  Usage.
 #
 # Skips: retention=permanent (never removed automatically), files lacking a parseable descriptor.
-# SPECS_ROOT env var overrides the default .specs/ root (used by tests).
-# Default: $PWD/.specs — the caller's working directory, where ralph/team/autopilot
-# write their .specs/ tree. Script location is intentionally NOT used to anchor SPECS_ROOT,
+# SPECS_ROOT env var overrides the default .dt-handoff/ root (used by tests).
+# Default: $PWD/.dt-handoff — the caller's working directory, where ralph/team/autopilot
+# write their .dt-handoff/ tree. Script location is intentionally NOT used to anchor SPECS_ROOT,
 # because the plugin is installed under a cache dir unrelated to the user's project.
 
 set -uo pipefail
 
-SPECS_ROOT="${SPECS_ROOT:-$PWD/.specs}"
+SPECS_ROOT="${SPECS_ROOT:-$PWD/.dt-handoff}"
 
 SLUG=""
 ALL=false
@@ -39,8 +39,8 @@ fi
 if [ "$SHOW_HELP" = "true" ] || { [ -z "$SLUG" ] && [ "$ALL" != "true" ]; }; then
   cat <<'USAGE'
 cleanup.sh usage:
-  --slug=<slug>     Process one slug under .specs/.
-  --all             Process every slug under .specs/.
+  --slug=<slug>     Process one slug under .dt-handoff/.
+  --all             Process every slug under .dt-handoff/.
   --dry-run         List targets only; do not remove.
   --help            This message.
 
