@@ -13,7 +13,7 @@
       "name": "dev-tools",
       "source": "./plugins/dev-tools",
       "description": "Unified Claude Code toolkit by hg-pyun — 16 specialist agents across 4 lanes (Build/Analysis · Review · Domain · Coordination), multi-agent orchestration (autopilot/ralplan/ralph/team), deep-interview planning, git+GitHub workflows, and cURL debugging in a single plugin",
-      "version": "2026.05.27.1",
+      "version": "2026.05.27.2",
       "keywords": [
         "git",
         "commit",

@@ -99,17 +99,47 @@ Confirm via AskUserQuestion.
 - For simple stacks: rely on `git reflog`-based recovery instructions.
 
 ### Step 5: Execute rebase
-1. Process branches bottom-up (closest to base first).
-2. Check out target branch: `git checkout <target-branch>`.
-3. Execute: `git rebase --onto <new-base> <old-base> --update-refs`.
-4. `--update-refs` propagates intermediate refs in one shot.
+Delegate the mechanical rebase execution to `git-master` via Task:
+
+```
+Task(subagent_type="git-master", prompt="""
+Execute the rebase plan below. Process branches in the order listed (bottom-up, closest to base first).
+
+@handoff-in
+kind: handoff
+path: null
+sizeBytes: <inline>
+note: Execute each rebase in order; surface conflict context if any; do NOT auto-push.
+
+Rebase plan:
+- target branch: <target-branch>
+- command: git rebase --onto <new-base> <old-base> --update-refs
+- backup branches already created: <yes/no and names>
+- stop on conflict: return conflict context to caller without resolving ambiguous hunks
+
+Return @handoff-out with status complete (all branches rebased) or failed (unresolvable conflict
+or 3-failure limit). Include fresh `git log --oneline --graph --decorate -10` output.
+""")
+```
+
+git-master runs the git commands and returns results. The command reads `@handoff-out`:
+- `status: complete` → proceed to Step 7.
+- `status: failed` → surface the conflict context and proceed to Step 6.
 
 ### Step 6: Conflict handling
-On conflict:
-1. Analyze conflicting files.
-2. Try automatic resolution via diff analysis. If safe → `git add <file>` → `git rebase --continue`.
-3. If unsafe:
-   - Show conflict to user.
+On conflict (git-master returned `status: failed` with conflict context):
+1. Review conflict context returned by git-master (conflicting files and hunk details).
+2. If the conflict is clearly safe to auto-resolve (non-overlapping hunks reported by git-master): delegate resolution application back to git-master:
+   ```
+   Task(subagent_type="git-master", prompt="""
+   Apply conflict resolution and continue the rebase:
+   - git add <file(s)>
+   - git rebase --continue
+   Return @handoff-out with status complete or failed.
+   """)
+   ```
+3. If unsafe or ambiguous:
+   - Show conflict details to user (from git-master's report).
    - AskUserQuestion: partial application (if succeeded branches are independently valid) vs full abort.
 
 ### Step 7: Verify results and report
@@ -129,9 +159,10 @@ On conflict:
 </Steps>
 
 <Tool_Usage>
-- `Bash` for all git operations.
+- `Task(subagent_type="git-master", …)` for mechanical rebase execution (Step 5) and conflict-apply mechanics (Step 6). Pass the rebase plan as an `@handoff-in` block; read `@handoff-out` to route on `status`.
+- `Bash` for Steps 1–4 and 7–8 (working-tree checks, base detection, stack topology, verification, push). git-master owns the rebase/conflict Bash; the command owns everything else.
 - GitHub MCP (priority) and `gh` CLI (fallback) for PR/repo lookups.
-- `AskUserQuestion` at decision points (uncommitted changes, fork ambiguity, high-risk preview, conflict resolution, push selection).
+- `AskUserQuestion` at decision points (uncommitted changes, fork ambiguity, high-risk preview, ambiguous conflict resolution, push selection). The command — not git-master — owns all user interaction.
 </Tool_Usage>
 
 <Examples>

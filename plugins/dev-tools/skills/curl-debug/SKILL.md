@@ -82,27 +82,34 @@ Extract signals from the response and determine the tracing order.
 Start from the highest-priority signal that exists.
 
 ### Step 3: Trace
-Follow signals through the codebase in the determined order. **Stream each step as you go** — do not batch into a final report.
+Delegate the reverse-trace to the `tracer` agent. Pass the cURL response body, status code, response headers, and the signals extracted in Step 2 as an `@handoff-in` block. Tracer applies the same signal-priority order, enumerates competing hypotheses, scores each with supporting and refuting evidence, and returns a ranked evidence chain with the full trace path (effect → intermediate evidence → file:line).
 
-**Tracing principles:**
-- **URL path search:** start with the most distinctive segment (`orders` > `api`). Generalize path params (numbers, UUIDs) to wildcards. Combine with HTTP method for precision.
-- **Error message search:** split into meaningful fragments. If an error code exists, search for the enum/constant definition first.
-- **Body fields → schema:** find type definitions and check mismatches between schema and actual values sent.
-- **Stack trace:** skip framework-internal frames; start at the first user-code frame.
-- **Route → handler chain:** follow imports/requires to trace the function-call chain.
+```
+Task(
+  subagent_type="tracer",
+  prompt="""
+Reverse-trace the following HTTP response to the responsible code path.
 
-**Parallel tracing:** use the Agent tool for parallel exploration **only** when signals 1–3 are all absent and the URL path (signal 4) is the sole entry point:
-- **Agent A:** URL path → router → handler → service chain
-- **Agent B:** Request body field names → model/schema tracing
+@handoff-in
+kind: handoff
+path: .dt-handoff/<slug>/artifacts/ask/curl-debug-<ISO8601>.md
+contentHash: sha256:<…>
+sizeBytes: <…>
+note: <1-line description of the effect — e.g., "HTTP 500 with stack trace; trace to responsible code">
 
-Otherwise, trace sequentially.
+<inline the response body, status code, headers, and extracted signals here when sizeBytes ≤ 4096; otherwise write them to the path above and reference by pointer only>
+"""
+)
+```
 
-**Halt condition:** stop tracing and proceed to Step 4 when you can answer **all three**:
+Consume the tracer's output: read the ranked hypothesis table and the trace chain (effect → file:line). The top-ranked hypothesis and its file:line evidence become the input to Step 4.
+
+**Halt condition:** tracer stops when it can answer **all three**:
 1. **What** went wrong (technical cause)
 2. **Where** it happens (file:line)
 3. **Why** it happens (root cause)
 
-If any of the three is unanswered, continue to the next signal priority. If all signals are exhausted without completing the three answers → present the best analysis you have and AskUserQuestion for additional info (server logs, framework details, etc.).
+If tracer cannot answer all three (sets `status: failed` in its `@handoff-out`), present the partial trace and AskUserQuestion for additional info (server logs, framework details, etc.).
 
 ### Step 4: Report & follow-up
 **Output structure:**
@@ -136,7 +143,7 @@ This delegation is optional — only invoke when the proposed fix is non-trivial
 
 <Tool_Usage>
 - `Bash` for executing the cURL and any follow-up shell commands
-- `Grep` + `Read` for codebase tracing
+- `Task(subagent_type="tracer", ...)` — primary tracing mechanism for Step 3; pass the cURL response + extracted signals via `@handoff-in`; consume the returned trace chain and ranked hypotheses
 - `Task(subagent_type="reviewer", ...)` (optional) when a proposed fix benefits from severity-rated review (see Step 4)
 - `AskUserQuestion` at decision points (network retry, short-circuit cases, missing info, follow-up actions)
 </Tool_Usage>
