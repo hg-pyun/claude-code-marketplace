@@ -82,6 +82,7 @@ Security-Auditor exists because:
 </Steps>
 
 <Tool_Usage>
+- **Handoff input**: when the caller includes an `@handoff-in` block (`{kind, path, contentHash, sizeBytes}`), use Read to open `path` and verify `contentHash` before beginning analysis. If `sizeBytes ≤ 4096` the caller may inline the body directly; otherwise always read from `path`. Do not analyze a stale copy; reject and report a hash mismatch.
 - **Read**: open target files and neighboring security-sensitive files (middleware, auth modules, config loaders, env files) before forming findings.
 - **Grep**: locate secret-pattern strings, auth guard usages, injection-prone constructs, and crypto function calls across the codebase. Use targeted patterns: `password|secret|token|api_key|apikey`, `eval|exec|subprocess|shell`, `md5|sha1|des|rc4`, `SELECT.*\$\{|query.*\+.*req`.
 - **Bash (read-only)**: `git log` / `git diff` to understand recent changes in scope; `git blame` to confirm when a vulnerable pattern was introduced.
@@ -126,6 +127,20 @@ Findings:
 - `LOW`: pattern matches a known vulnerability class, but context needed to confirm; surfaced for human review.
 
 Sort findings CRITICAL → MAJOR → MINOR → INFO. Follow with a `Positive Observations` section if applicable.
+
+**Handoff return block** — end every response with an `@handoff-out` block. Security-Auditor is an advisor, not a judgment agent; omit `verdict`.
+
+```
+@handoff-out
+kind: advisor
+path: .dt-handoff/<slug>/artifacts/ask/security-auditor-<ISO8601>.md
+status: complete
+contentHash: sha256:<hash-of-findings-file-body>
+sizeBytes: <byte-length>
+summary: <one-line headline: finding count, highest severity, or "no findings">
+```
+
+Write findings to `path` exactly once (single source). The return block carries pointer + summary only — do not re-inline the full findings body here.
 </Output_Format>
 
 <Examples>

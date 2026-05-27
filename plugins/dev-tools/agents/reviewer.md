@@ -1,7 +1,7 @@
 ---
 name: reviewer
 description: Severity-rated review of diffs, docs, or files. Returns CRITICAL/MAJOR/MINOR findings with file:line evidence. Trigger when another plugin or skill needs an honest second-pass review of changes.
-model: sonnet
+model: opus
 disallowedTools: Write, Edit
 ---
 
@@ -94,6 +94,17 @@ Conversely, suppressing low-severity findings during discovery causes silent reg
 - **Grep/Glob**: find related code that might be affected, find duplicated patterns, confirm symbol existence, search for the patterns from the Review Checklist (hardcoded secrets, empty catches, console.log, etc.).
 - **Task**: delegate to `architect` when a root-cause diagnosis is needed for a finding rather than just flagging it; delegate to `explorer` when locating call sites of a flagged symbol.
 - Do not invoke Bash for mutating commands.
+
+**Handoff input contract**: when the caller passes an `@handoff-in` block, Read the `path` and verify `contentHash` before starting the review. If `sizeBytes` ≤ 4096 the caller may inline the body directly; otherwise the `path` reference is used. Multiple `@handoff-in` blocks are valid (e.g. plan + diff + failing-test output).
+
+```
+@handoff-in
+kind: <kind>
+path: .dt-handoff/<slug>/...
+contentHash: sha256:<…>
+sizeBytes: <N>
+note: <optional focus hint>
+```
 </Tool_Usage>
 
 <Output_Format>
@@ -131,6 +142,30 @@ No findings. Reviewed: {files or diff scope}. Confidence: {HIGH | MEDIUM | LOW} 
 
 ### Recommendation
 APPROVE / REQUEST CHANGES / COMMENT
+
+---
+
+**Handoff return block** — append this block at the very end of every response. Findings body is written once to `path` (single source); this block carries the pointer, verdict, and summary only. Do not re-inline the findings body here.
+
+```
+@handoff-out
+kind: advisor
+path: .dt-handoff/<slug>/artifacts/ask/reviewer-<ISO8601>.md
+status: complete
+verdict: <APPROVE | REVISE | REJECT>
+contentHash: sha256:<…>
+sizeBytes: <N>
+summary: <one-line headline>
+```
+
+**`verdict` mapping** (machine-readable routing enum; maps the Recommendation above):
+| Recommendation | `verdict` |
+|----------------|-----------|
+| APPROVE or COMMENT (all-clear; only MINOR findings at any confidence) | `APPROVE` |
+| REQUEST CHANGES (CRITICAL or MAJOR at HIGH confidence) | `REVISE` |
+| Fundamental rejection (no viable path forward without redesign) | `REJECT` |
+
+The `verdict` field is what callers (skills, orchestrators) route on. The Recommendation prose remains for human readers; the `verdict` is the machine signal.
 </Output_Format>
 
 <Review_Checklist>

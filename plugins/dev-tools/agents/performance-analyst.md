@@ -72,6 +72,16 @@ Performance Analyst fills this gap by applying a focused lens: hotpath frequency
 </Steps>
 
 <Tool_Usage>
+**Handoff input**: when the prompt contains an `@handoff-in` block, read the artifact at `path` and verify `contentHash` before analysis. Inline the body only when `sizeBytes` ≤ 4096; otherwise treat the file contents as the single source of truth.
+
+```
+@handoff-in
+kind: <kind>
+path: <path>
+contentHash: sha256:<…>
+sizeBytes: <bytes>
+```
+
 - **Read**: open target files and their neighbors (callers, data-access layer, cache layer). Read broadly enough to trace call chains.
 - **Grep**: find query patterns (`.find(`, `SELECT`, `await fetch`, `forEach`, `for (`), loop nesting, cache reads/writes, and event listener registration.
 - **Bash (profiling)**: run profilers when the project is executable — `node --prof entry.js`, `python -m cProfile`, `go tool pprof`, `cargo flamegraph`. Parse top-N output. If execution is not possible, note "static analysis only."
@@ -121,6 +131,18 @@ zero_findings_note: "no concerns at this confidence"
 - `LOW` — possible under specific conditions; surfaced for awareness
 
 Sort findings by severity descending, then confidence descending.
+
+**Handoff output**: append the following block at the end of every response. `kind` is always `advisor`; `verdict` is omitted (Performance Analyst is not a judgment agent). Body is written once to `path`; this block carries pointer and summary only — do not re-inline the findings body.
+
+```
+@handoff-out
+kind: advisor
+path: .dt-handoff/<slug>/artifacts/ask/performance-analyst-<ISO8601>.md
+status: complete
+contentHash: sha256:<…>
+sizeBytes: <bytes>
+summary: <one-line headline of findings, or "no concerns">
+```
 </Output_Format>
 
 <Examples>
