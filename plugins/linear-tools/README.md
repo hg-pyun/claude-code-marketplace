@@ -1,8 +1,8 @@
 # linear-tools
 
-> Linear ticket workflow toolkit for Claude Code — built and maintained by **hg-pyun**.
+> Interview-driven Linear ticket enrichment for Claude Code.
 
-A focused plugin for working with Linear tickets through Claude Code. Currently ships one command, `/enrich-ticket`, that conducts a guided interview and writes a structured ticket body back to Linear via the Linear MCP.
+A focused plugin shipping one command, `/enrich-ticket`: it runs a guided interview and writes a structured ticket body back to Linear via the Linear MCP.
 
 ---
 

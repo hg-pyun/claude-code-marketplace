@@ -1,8 +1,8 @@
 # dev-tools
 
-> Personal multi-agent orchestration plugin for Claude Code — built and maintained by **hg-pyun**.
+> Multi-agent dev toolkit for Claude Code.
 
-A single bundled plugin that combines 16 specialist **agents** (organized in 4 lanes), a full-lifecycle **orchestration pipeline**, and day-to-day **git / GitHub** helpers. Install once, get the entire toolkit.
+One plugin bundling 16 specialist **agents** (4 lanes), a full-lifecycle **orchestration pipeline**, and everyday **git / GitHub** helpers — install once, get the whole toolkit.
 
 ---
 

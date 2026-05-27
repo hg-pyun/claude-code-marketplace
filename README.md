@@ -2,7 +2,7 @@
 
 > Personal Claude Code plugin marketplace — `hg-pyun-plugins`.
 
-A static GitHub-hosted marketplace shipping two focused plugins: **`dev-tools`** (specialist agents, end-to-end orchestration pipeline, git / GitHub helpers) and **`linear-tools`** (Linear ticket workflow helpers via Linear MCP).
+A static GitHub-hosted marketplace with two plugins: **`dev-tools`** (multi-agent orchestration, code review, git/GitHub, debugging) and **`linear-tools`** (Linear ticket enrichment via MCP).
 
 ---
 
@@ -28,8 +28,8 @@ Install only the plugins you need; each is independently versioned.
 
 | Plugin | Description | Docs |
 |--------|-------------|------|
-| **dev-tools** | Unified toolkit — 16 specialist agents (4 lanes: Build/Analysis · Review · Domain · Coordination) and 10 entrypoints across orchestration (`/autopilot`, `/deep-interview`, `/ralplan`, `/ralph`, `/team`), review & debugging (`/code-review`, `/curl-debug`), git & GitHub (`/git-commit`, `/github-pr`, `/git-rebase-stack`). | [README](plugins/dev-tools/README.md) · [CLAUDE](plugins/dev-tools/CLAUDE.md) |
-| **linear-tools** | Linear ticket workflow toolkit — `/enrich-ticket` conducts a guided interview and writes a structured ticket body back via the Linear MCP. | [README](plugins/linear-tools/README.md) |
+| **dev-tools** | Multi-agent dev toolkit — 16 specialist agents and 10 entrypoints: orchestration (`/autopilot`, `/deep-interview`, `/ralplan`, `/ralph`, `/team`), review & debugging (`/code-review`, `/curl-debug`), git & GitHub (`/git-commit`, `/github-pr`, `/git-rebase-stack`). | [README](plugins/dev-tools/README.md) · [CLAUDE](plugins/dev-tools/CLAUDE.md) |
+| **linear-tools** | Interview-driven Linear ticket enrichment — `/enrich-ticket` writes a structured ticket body back via the Linear MCP. | [README](plugins/linear-tools/README.md) |
 
 For the marketplace's own architecture, schemas, validation rules, and governance, see **[CLAUDE.md](CLAUDE.md)**.
 
