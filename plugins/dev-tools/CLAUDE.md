@@ -1,20 +1,21 @@
-# dev-tools — Plugin Working Guide
+# dev-tools — Plugin Maintenance Guide
 
-Unified toolkit: 9 specialist agents + orchestration / review / debugging / git+GitHub skills. Repo-wide governance (versioning, author field, 9-section, language) lives in the root [CLAUDE.md](../../CLAUDE.md); this file is the dev-tools working guide.
+Unified toolkit: 16 specialist agents (4 lanes: Build/Analysis · Review · Domain · Coordination) + orchestration / review / debugging / git+GitHub skills. Repo-wide governance (versioning, author field, 9-section, language) lives in the root [CLAUDE.md](../../CLAUDE.md); this file covers dev-tools-specific maintenance only.
 
 ## Structure
 ```
 plugins/dev-tools/
 ├── .claude-plugin/plugin.json
-├── agents/      # reviewer explorer architect critic executor test-engineer
-│                # doc-writer performance-analyst security-auditor
+├── agents/      # 16 agents across 4 lanes — see agents/*.md for roster and role boundaries
 ├── commands/    # git-rebase-stack
 ├── skills/      # autopilot deep-interview ralplan ralph team
 │                # code-review curl-debug git-commit github-pr
-├── scripts/     # cleanup.sh (.specs retention purge), test-cleanup.sh
+├── scripts/     # cleanup.sh (.dt-handoff retention purge), test-cleanup.sh
 ├── README.md    # user-facing tour
 └── CLAUDE.md    # this guide
 ```
+
+Local hand-off artifact workspace: `.dt-handoff/<slug>/` (gitignored; spec/plan/prd/state/notepads/…).
 
 ## Agent / skill / command boundary
 - **agent** (`agents/*.md`) — a delegated role invoked via Task (reviewer, executor, …). No 9-section; output uses the calling-session language.
@@ -36,47 +37,18 @@ Task(subagent_type="executor", prompt="…")
 3. Bump `version` in **both** `plugins/dev-tools/.claude-plugin/plugin.json` and the dev-tools entry in `.claude-plugin/marketplace.json` (same value) — `skills/` and `commands/` are source files.
 4. `bash scripts/validate.sh` — exit `0` is the gate.
 
+## Hand-off descriptor + `@handoff` + `verdict` contract
+See the `scripts/validate.sh` header (machine source of truth + human mirror).
+
+## Retention & cleanup
+See `plugins/dev-tools/scripts/cleanup.sh` (invoked as `bash "${CLAUDE_PLUGIN_ROOT}/scripts/cleanup.sh"`).
+
 ## validate.sh troubleshooting
 | Symptom | Cause / fix |
 |---------|-------------|
-| 9-section check fails | a SKILL.md / command md is missing one of the nine XML sections. README & CLAUDE.md are exempt. |
-| version sync failure | plugin.json and the marketplace.json entry disagree, or the format isn't `YYYY.MM.DD[.N]`. |
-| descriptors lane fails on legacy `.specs` file | use the default incremental `--descriptors` lane; legacy files aren't re-validated unless modified. |
-
-## Artifact hand-off descriptor schema
-> **Human mirror.** The *enforced* field list is `DESC_REQUIRED_FIELDS` in `scripts/validate.sh` (and the enums there) — that script is the machine source of truth. This section is its human-readable mirror; keep the two in sync.
-> **Do not rename this heading.** `skills/team`, `skills/deep-interview`, `skills/ralplan`, and `skills/ralph` anchor to `#artifact-hand-off-descriptor-schema`.
-
-Every hand-off artifact written by `deep-interview`, `ralplan`, `ralph`, `team`, `autopilot`, or `code-review` carries a **9-field descriptor**. Location by file type:
-- `.md` (`spec.md`, `plan.md`, `team-*.md`, `notepads/*.md`, `artifacts/ask/*.md`) — YAML frontmatter between leading `---` markers.
-- `.json` (`prd.json`, `state/*.json`) — reserved top-level `_descriptor` key.
-
-| Field | Type | Notes |
-|-------|------|-------|
-| `kind` | enum | `spec`·`plan`·`prd`·`advisor`·`notepad`·`state`·`handoff`·`trace` |
-| `path` | string | absolute or cwd-relative |
-| `contentHash` | string | `sha256:…` of content **excluding** the descriptor block |
-| `createdAt` | ISO 8601 | UTC |
-| `producer` | string | skill or agent name |
-| `sizeBytes` | integer | byte length of artifact content |
-| `retention` | enum | `session`·`day`·`permanent` |
-| `expiresAt` | ISO 8601 \| null | `null` when `retention=permanent` |
-| `status` | enum | `pending`·`approved`·`complete`·`failed`·`cancelled`·`PASSED`·`EARLY_EXIT`·`HARD_CAP` |
-
-**Storage** — each slug owns `.specs/<slug>/`: `spec.md` (deep-interview), `plan.md` (ralplan), `prd.json` (ralph/team), `progress.txt` (trace), `state/`, `artifacts/ask/` (advisor, session), `notepads/` (ralph memory), `events.jsonl` (team). Stage summaries: `team-final.md`, `autopilot-validation.md`.
-
-**Legacy exemption** — pre-2026-05-23 `spec.md`/`plan.md`/`prd.json` may lack `contentHash`/`sizeBytes`/`expiresAt`; the default incremental `--descriptors` lane skips unmodified files, and consumer skills parse missing fields as `null` rather than erroring.
-
-## Retention & cleanup
-`plugins/dev-tools/scripts/cleanup.sh` (invoked as `bash "${CLAUDE_PLUGIN_ROOT}/scripts/cleanup.sh"`) keys off the `retention` field:
-
-| Retention | For | Purge trigger |
-|-----------|-----|---------------|
-| `session` | advisor findings, ephemeral handoffs | end of session / `expiresAt` |
-| `day` | daily QA / validation summaries | `expiresAt` (24h) |
-| `permanent` | `spec.md`, `plan.md`, `prd.json`, notepads | never (defensive short-circuit) |
-
-Cleanup is opt-in and idempotent.
+| 9-section check fails | a SKILL.md / command md is missing one of the nine XML sections. README, CLAUDE.md & agents are exempt. |
+| version sync failure | plugin.json and the marketplace.json entry disagree, or the format is not `YYYY.MM.DD[.N]`. |
+| descriptors lane fails on legacy `.dt-handoff` file | use the default incremental `--descriptors` lane; legacy files are not re-validated unless modified. |
 
 ## Deployment assumption
 This plugin assumes a **single-host filesystem** (macOS or Linux). NFS is **not supported** for `team` mode locking: `mkdir`-based atomicity is not guaranteed across NFS clients, which can break `team-exec` parallel-wave coordination.

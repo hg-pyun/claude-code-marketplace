@@ -28,7 +28,7 @@ Install only the plugins you need; each is independently versioned.
 
 | Plugin | Description | Docs |
 |--------|-------------|------|
-| **dev-tools** | Unified toolkit — 9 specialist agents (reviewer / explorer / architect / critic / executor / test-engineer / doc-writer / performance-analyst / security-auditor) and 10 entrypoints across orchestration (`/autopilot`, `/deep-interview`, `/ralplan`, `/ralph`, `/team`), review & debugging (`/code-review`, `/curl-debug`), git & GitHub (`/git-commit`, `/github-pr`, `/git-rebase-stack`). | [README](plugins/dev-tools/README.md) · [CLAUDE](plugins/dev-tools/CLAUDE.md) |
+| **dev-tools** | Unified toolkit — 16 specialist agents (4 lanes: Build/Analysis · Review · Domain · Coordination) and 10 entrypoints across orchestration (`/autopilot`, `/deep-interview`, `/ralplan`, `/ralph`, `/team`), review & debugging (`/code-review`, `/curl-debug`), git & GitHub (`/git-commit`, `/github-pr`, `/git-rebase-stack`). | [README](plugins/dev-tools/README.md) · [CLAUDE](plugins/dev-tools/CLAUDE.md) |
 | **linear-tools** | Linear ticket workflow toolkit — `/enrich-ticket` conducts a guided interview and writes a structured ticket body back via the Linear MCP. | [README](plugins/linear-tools/README.md) |
 
 For the marketplace's own architecture, schemas, validation rules, and governance, see **[CLAUDE.md](CLAUDE.md)**.

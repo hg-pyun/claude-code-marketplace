@@ -2,7 +2,7 @@
 
 > Personal multi-agent orchestration plugin for Claude Code — built and maintained by **hg-pyun**.
 
-A single bundled plugin that combines specialist **agents**, a full-lifecycle **orchestration pipeline**, and day-to-day **git / GitHub** helpers. Install once, get the entire toolkit.
+A single bundled plugin that combines 16 specialist **agents** (organized in 4 lanes), a full-lifecycle **orchestration pipeline**, and day-to-day **git / GitHub** helpers. Install once, get the entire toolkit.
 
 ---
 
@@ -13,7 +13,7 @@ A single bundled plugin that combines specialist **agents**, a full-lifecycle **
 - [Orchestration lifecycle](#orchestration-lifecycle)
 - [Agents](#agents)
 - [Skills & commands](#skills--commands)
-- [`.specs/<slug>/` artifact layout](#specsslug-artifact-layout)
+- [`.dt-handoff/<slug>/` artifact layout](#dt-handoffslug-artifact-layout)
 - [Settings & language](#settings--language)
 - [Behavior guarantees](#behavior-guarantees)
 - [MCP requirements](#mcp-requirements)
@@ -38,7 +38,7 @@ Within `dev-tools` there is no `core` sub-plugin and no cross-plugin invocation 
 |------------|------|-----------|
 | `/autopilot` | skill | End-to-end pipeline: interview → plan → execute → QA → validate. |
 | `/deep-interview` | skill | Socratic interview with ambiguity scoring. Writes `spec.md`. |
-| `/ralplan` | skill | Consensus planning (Architect + Performance-analyst + Critic). Writes `plan.md`. |
+| `/ralplan` | skill | Consensus planning (planner + architect + performance-analyst + critic). Writes `plan.md`. |
 | `/ralph` | skill | PRD-driven sequential execution loop with TDD discipline. |
 | `/team` | skill | 5-stage parallel multi-agent orchestration. |
 | `/code-review` | skill | Multi-domain severity-rated review (reviewer + security-auditor + doc-writer). |
@@ -56,12 +56,12 @@ Korean trigger phrases (e.g. `"커밋해줘"`, `"PR 만들어줘"`, `"끝까지 
 The four orchestration skills form a single, resumable lifecycle:
 
 ```
-┌────────────────┐   ┌─────────┐   ┌────────────┐   ┌───────────────┐   ┌────────────┐
-│ deep-interview │ → │ ralplan │ → │ ralph      │ → │ test-engineer │ → │ architect  │
-│   spec.md      │   │ plan.md │   │   or team  │   │   QA pass     │   │ + critic   │
-│                │   │         │   │ prd.json   │   │  (max 5 iter) │   │ + reviewer │
-└────────────────┘   └─────────┘   │ + code     │   └───────────────┘   │ Validation │
-                                   │ + progress │                       └────────────┘
+┌────────────────┐   ┌─────────┐   ┌────────────┐   ┌──────────────────┐   ┌────────────┐
+│ deep-interview │ → │ ralplan │ → │ ralph      │ → │ test-engineer    │ → │ architect  │
+│   spec.md      │   │ plan.md │   │   or team  │   │   + executor     │   │ + critic   │
+│                │   │         │   │ prd.json   │   │   + verifier     │   │ + reviewer │
+└────────────────┘   └─────────┘   │ + code     │   │  QA (max 5 iter) │   │ Validation │
+                                   │ + progress │   └──────────────────┘   └────────────┘
                                    └────────────┘
 ```
 
@@ -84,19 +84,43 @@ When to pick what:
 
 ## Agents
 
-Nine specialist agents. Six are read-only **advisors** (`disallowedTools: Write, Edit`); two **author code** (`executor`, `test-engineer`); one is **dual-mode** (`doc-writer`, advisor by default, autonomous when invoked directly).
+Sixteen specialist agents organized in four lanes. Read-only advisors carry `disallowedTools: Write, Edit`; write-capable agents have no such constraint. Three agents return a machine-readable `verdict` field (`APPROVE` / `ACCEPT_WITH_RESERVATIONS` / `ITERATE` / `REVISE` / `REJECT`) in their `@handoff-out` block: `reviewer`, `critic`, and `verifier`.
+
+### Build / Analysis lane
 
 | Agent | Model | Writes? | Role |
 |-------|-------|---------|------|
-| `reviewer` | sonnet | no | Severity-rated review (CRITICAL/MAJOR/MINOR) of diffs and files. |
 | `explorer` | haiku | no | Fast file/symbol/pattern lookup with absolute paths and excerpts. |
-| `architect` | opus | no | Root-cause diagnosis + architectural recommendations with file:line evidence. 3-fail escalation target. |
-| `critic` | opus | no | Adversarial plan critique with explicit verdict (`REJECT` / `REVISE` / `ACCEPT-WITH-RESERVATIONS` / `ACCEPT`). |
-| `executor` | sonnet | yes | Focused code implementation. Small-correct-diff principle, TDD-first refusal. |
-| `test-engineer` | sonnet | tests only | Red-step authoring, coverage gap analysis, flaky-test diagnosis. TDD Iron Law enforcement. |
-| `doc-writer` | sonnet | dual-mode | Doc gap/staleness/consistency analysis. Authors directly in autonomous mode. |
+| `analyst` | opus | no | Requirement decomposition, hidden-constraint surfacing, and ambiguity scoring. |
+| `planner` | opus | no | Turns a spec or PRD into a sequenced, dependency-aware execution plan (story breakdown + DAG + acceptance criteria). |
+| `architect` | opus | no | System design and trade-off advisor; evaluates interface contracts and recommends structural changes with file:line evidence. Not for bug diagnosis or verification. |
+| `debugger` | sonnet | no | Root-cause analysis advisor; diagnoses build/test/runtime failures with a 4-phase RCA protocol and hands off a concrete hypothesis. |
+| `tracer` | sonnet | no | Evidence-driven causal tracing; reverse-traces an observed effect to responsible code and ranks competing hypotheses. |
+| `executor` | sonnet | yes | Focused code implementation. Small-correct-diff principle, TDD Iron Law enforcement. After 3 fails, escalates to `debugger` (root cause unclear) or `architect` (design wrong). |
+| `verifier` | sonnet | no | Completion-verification gate; runs BUILD/TEST/LINT/FUNCTIONALITY/TODO/ERROR_FREE with fresh command output and returns a machine-readable `verdict`. |
+
+### Review lane
+
+| Agent | Model | Writes? | Role |
+|-------|-------|---------|------|
+| `reviewer` | opus | no | Severity-rated review (CRITICAL/MAJOR/MINOR) of diffs and files; returns machine-readable `verdict`. |
+| `security-auditor` | opus | no | AuthN/AuthZ, secrets, crypto, injection, SAST, and config findings with severity + confidence ratings. |
 | `performance-analyst` | sonnet | no | Hotpath, complexity, IO/Memory/Cache findings with severity ratings. |
-| `security-auditor` | opus | no | AuthN/AuthZ, secrets, crypto, injection, SAST, config findings with severity + confidence. |
+
+### Domain lane
+
+| Agent | Model | Writes? | Role |
+|-------|-------|---------|------|
+| `test-engineer` | sonnet | tests only | Red-step authoring, coverage gap analysis, flaky-test diagnosis. TDD Iron Law enforcement. |
+| `doc-writer` | sonnet | dual-mode | Doc gap/staleness/consistency analysis in advisor mode; authors directly in autonomous mode. |
+| `git-master` | sonnet | yes (git ops only) | Encapsulates git mechanics (status, diff, staging, commit construction, rebase, push) for the git/GitHub skills. Never mutates on its own initiative — only when a user-triggered skill directs it. |
+| `code-simplifier` | opus | yes | Behavior-preserving simplification of a bounded changed-file set; re-verifies via `verifier` after cleanup. Used by `ralph` (Step 7.5) and `team` cleanup passes. |
+
+### Coordination lane
+
+| Agent | Model | Writes? | Role |
+|-------|-------|---------|------|
+| `critic` | opus | no | Adversarial plan critique with explicit verdict (`REJECT` / `REVISE` / `ACCEPT-WITH-RESERVATIONS` / `ACCEPT`). |
 
 Invoke via the Task tool — no plugin prefix:
 
@@ -119,32 +143,32 @@ End-to-end 5-phase pipeline from idea to code-ready state. Sequences:
 1. **Expansion** — `deep-interview` → `spec.md`
 2. **Planning** — `ralplan` → `plan.md` (`pending approval`)
 3. **Execution** — `ralph` (sequential) or `team` (parallel) → code + `prd.json` + `progress.txt`
-4. **QA** — `test-engineer` pass, up to 5 iterations
-5. **Validation** — `architect` + `critic` + `reviewer` (+ optional `security-auditor`, `performance-analyst`, `doc-writer`) → `autopilot-validation.md`
+4. **QA** — `test-engineer` + `executor` + `verifier` pass, up to 5 iterations
+5. **Validation** — `architect` + `critic` + `reviewer` (+ optional `security-auditor`, `performance-analyst`, `doc-writer`, `verifier`) → `autopilot-validation.md`
 
 Smart-skip: existing `spec.md` skips Phase 1; existing `plan.md` skips Phases 1–2. Stops at "ready for commit".
 
 #### `/deep-interview [topic] [--lang=<value>] [--threshold=<0.0-1.0>] [--max-rounds=<n>]`
 
-Socratic interview with mathematical ambiguity gating (default threshold `0.2`). Per-dimension scoring across **Goal / Constraints / Criteria / Context**. Round 0 establishes topology; subsequent rounds target the weakest dimension. Challenge agents (Contrarian / Simplifier / Ontologist) activate at preset thresholds. Brownfield codebases get a pre-interview `explorer` pass.
+Socratic interview with mathematical ambiguity gating (default threshold `0.2`). Per-dimension scoring across **Goal / Constraints / Criteria / Context**. Round 0 establishes topology; subsequent rounds target the weakest dimension. Delegates deep requirement analysis and ambiguity scoring to `analyst`; brownfield codebase mapping to `explorer`; challenge modes (Contrarian / Simplifier / Ontologist) to `critic` at preset round thresholds.
 
-Output: `.specs/<slug>/spec.md`. Refuses handoff until ambiguity ≤ threshold OR user explicitly opts out.
+Output: `.dt-handoff/<slug>/spec.md`. Refuses handoff until ambiguity ≤ threshold OR user explicitly opts out.
 
 #### `/ralplan [--interactive] [--deliberate] [--from-spec=<path>]`
 
-Consensus planning via **RALPLAN-DR** structured deliberation (Principles → Drivers → Options → pre-mortem). Architect and performance-analyst run in parallel; Critic owns the single verdict. Iterates until `APPROVE`, max 5 rounds.
+Consensus planning via **RALPLAN-DR** structured deliberation (Principles → Drivers → Options → pre-mortem). `planner` authors the draft plan; `architect` and `performance-analyst` review in parallel; `critic` owns the single verdict. Iterates until `APPROVE`, max 5 rounds.
 
-Output: `.specs/<slug>/plan.md`, always marked `Status: pending approval`. This skill never executes — `ralph` / `team` / `autopilot` are the execution paths.
+Output: `.dt-handoff/<slug>/plan.md`, always marked `Status: pending approval`. This skill never executes — `ralph` / `team` / `autopilot` are the execution paths.
 
 #### `/ralph [--no-deslop] [--critic=architect|critic] [--from-plan=<path>]`
 
-PRD-driven sequential persistence loop. Reads `.specs/<slug>/prd.json`, picks the highest-priority story with `passes: false`, drives Red → Green → Refactor via `test-engineer` + `executor`, verifies acceptance criteria with fresh evidence, runs reviewer approval, then a `code-review` cleanup pass, then re-verifies regression.
+PRD-driven sequential persistence loop. Reads `.dt-handoff/<slug>/prd.json`, picks the highest-priority story with `passes: false`, drives Red → Green → Refactor via `test-engineer` + `executor`, verifies acceptance criteria with fresh evidence via the `verifier` agent, runs `reviewer` approval, then a `code-simplifier` cleanup pass (Step 7.5), then re-verifies regression with `verifier`.
 
-**TDD Iron Law**: no production code is written without a failing test first. Continues until every story passes.
+**TDD Iron Law**: no production code is written without a failing test first. On 3 consecutive story failures: root cause unclear → escalates to `debugger`; design fundamentally wrong → escalates to `architect`. Continues until every story passes.
 
 #### `/team [--max-parallel=<n>] [--no-critic] [--from-plan=<path>]`
 
-Five-stage parallel pipeline: **plan → prd → exec → verify → fix**. Decomposes into independent stories, fires `executor` and `test-engineer` in parallel waves, then runs `reviewer` + `critic` in Stage 4. Use when the plan has ≥ 3 independent surfaces; otherwise prefer `ralph`.
+Five-stage parallel pipeline: **plan → prd → exec → verify → fix**. `planner` decomposes into independent stories; `executor` and `test-engineer` run in parallel waves; `verifier` gates each stage completion; `reviewer` + `critic` run in Stage 4; `code-simplifier` handles the cleanup pass. Use when the plan has ≥ 3 independent surfaces; otherwise prefer `ralph`.
 
 Stops at "ready for commit". Single-host filesystem only — see [CLAUDE.md → Deployment assumption](./CLAUDE.md#deployment-assumption).
 
@@ -154,7 +178,7 @@ Stops at "ready for commit". Single-host filesystem only — see [CLAUDE.md → 
 
 Severity-rated review of the current diff (default) or a named file. Dispatches `reviewer` + `security-auditor` + `doc-writer` in parallel and consolidates CRITICAL / MAJOR / MINOR findings with file:line evidence.
 
-When called inside a slug context (e.g. autopilot Phase 5 or `--slug=<slug>`), each advisor also writes a persistent findings file at `.specs/<slug>/artifacts/ask/<agent>-<ISO8601>.md` with descriptor frontmatter.
+When called inside a slug context (e.g. autopilot Phase 5 or `--slug=<slug>`), each advisor also writes a persistent findings file at `.dt-handoff/<slug>/artifacts/ask/<agent>-<ISO8601>.md` with descriptor frontmatter.
 
 #### `/curl-debug <cURL>`
 
@@ -164,11 +188,11 @@ Runs the cURL request and reverse-traces the response back through the codebase 
 
 #### `/git-commit`
 
-Analyzes staged + unstaged changes, suggests splitting when warranted, drafts a conventional-commit message in `$LANGUAGE`, executes the commit. **Never** appends a `Co-Authored-By` trailer.
+Analyzes staged + unstaged changes, suggests splitting when warranted, drafts a conventional-commit message in `$LANGUAGE`, executes the commit. Delegates git mechanics to the `git-master` agent. **Never** appends a `Co-Authored-By` trailer.
 
 #### `/github-pr [--draft]`
 
-Detects the base branch, pushes the current branch if needed, drafts a conventional-commit-style title (English) with a body in `$LANGUAGE`, and creates the PR via GitHub MCP (or `gh` CLI fallback). Real newlines, never escaped `\n`.
+Detects the base branch, pushes the current branch if needed, drafts a conventional-commit-style title (English) with a body in `$LANGUAGE`, and creates the PR via GitHub MCP (or `gh` CLI fallback). Delegates git mechanics to `git-master`. Real newlines, never escaped `\n`.
 
 #### `/git-rebase-stack [base-or-intent]`
 
@@ -176,12 +200,12 @@ Auto-detects the stack topology from the current branch and runs `git rebase --o
 
 ---
 
-## `.specs/<slug>/` artifact layout
+## `.dt-handoff/<slug>/` artifact layout
 
-Every orchestration skill writes under a single slug directory:
+Every orchestration skill writes under a single slug directory inside the **local `.dt-handoff/` workspace** (gitignored). This replaced the former `.specs/<slug>/` layout in the post-overhaul rewrite.
 
 ```
-.specs/<slug>/
+.dt-handoff/<slug>/
 ├── spec.md              # deep-interview output (descriptor frontmatter; permanent)
 ├── plan.md              # ralplan output (descriptor frontmatter; permanent)
 ├── prd.json             # ralph/team internal (_descriptor key; permanent)
@@ -189,23 +213,23 @@ Every orchestration skill writes under a single slug directory:
 ├── state/               # control plane: autopilot.json, ralph.json, team.json
 ├── artifacts/ask/       # advisor output: <agent>-<ISO8601>.md (session retention)
 ├── notepads/            # ralph cross-iteration memory (learnings/decisions/issues/problems)
-├── events.jsonl         # team mode only: append-only event log
+├── events.jsonl         # append-only event log (every agent dispatch + return)
 ├── team-final.md        # team Stage 5 summary
 └── autopilot-validation.md  # autopilot Phase 5 consolidated verdicts
 ```
 
-See [CLAUDE.md](./CLAUDE.md#artifact-hand-off-descriptor-schema) for the **Artifact Hand-off Descriptor Schema** that every spec / plan / prd file carries.
+**Hand-off contract**: every artifact that crosses a skill→agent or agent→skill boundary carries a 9-field descriptor (frontmatter for `.md`, `_descriptor` key for `.json`). Skills pass `@handoff-in` blocks to agents; agents return `@handoff-out` blocks (including the optional `verdict` field for judgment agents). The `scripts/validate.sh` header is the machine source of truth for the descriptor schema and enum values; the descriptors lane (`bash scripts/validate.sh --descriptors`) enforces it.
 
-### Migrating legacy `.specs/` files
+### Migrating from `.specs/<slug>/`
 
-If you have spec files from an earlier version stored flat (`.specs/MY_SLUG.md`), move them into the per-slug layout before re-running `/autopilot`:
+If you have artifacts from a pre-overhaul run stored under `.specs/<slug>/`, move them into the new layout before re-running any orchestration skill:
 
 ```sh
-mkdir -p .specs/MY_SLUG
-mv .specs/MY_SLUG.md .specs/MY_SLUG/spec.md
+mkdir -p .dt-handoff/MY_SLUG
+mv .specs/MY_SLUG/* .dt-handoff/MY_SLUG/
 ```
 
-`autopilot` keys Phase 1 skip on `.specs/<slug>/spec.md`; missing the new path forces an interview re-run.
+All orchestration skills key their smart-skip logic on `.dt-handoff/<slug>/spec.md` and `.dt-handoff/<slug>/plan.md`; missing those paths forces a re-run of the corresponding phase.
 
 ---
 
@@ -236,6 +260,7 @@ mv .specs/MY_SLUG.md .specs/MY_SLUG/spec.md
 - **Structural headers** in PRs, specs, plans, and Linear tickets (`## Summary`, `## Goal`, `## Acceptance Criteria`, …) **stay English**; only their content is translated.
 - **Real newlines** in PR bodies — never escaped `\n` literals.
 - **Orchestration skills never auto-commit** — they hand back control at "ready for commit".
+- **Verdict routing is machine-readable** — `reviewer`, `critic`, and `verifier` return a `verdict` field in their `@handoff-out` block; skills route on that enum value, not prose keyword matching.
 - **Every SKILL.md / command.md** uses the [9-section XML house style](../../CLAUDE.md#9-section-house-style).
 
 ---
