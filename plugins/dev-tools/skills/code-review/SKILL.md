@@ -28,7 +28,7 @@ Free-form "looks good" reviews consume time without informing decisions. Severit
 - Always identify the review surface first (diff scope, or named files).
 - Delegate to the `reviewer` + `security-auditor` + `doc-writer` agents in parallel — do NOT inline the review logic.
 - Output must use the severity bar consistently across invocations.
-- **Hand-off persistence (slug context only)**: when a slug context is active (e.g., autopilot invocation or `--slug=<slug>` argument), each advisor's findings MUST also be persisted to `.specs/<slug>/artifacts/ask/<agent>-<ISO8601>.md` with the OMC descriptor frontmatter (kind=advisor, retention=session, status=complete). For free-standing user invocations without a slug, in-session text output is sufficient and no file is written.
+- **Hand-off persistence (slug context only)**: when a slug context is active (e.g., autopilot invocation or `--slug=<slug>` argument), each advisor's findings MUST also be persisted to `.dt-handoff/<slug>/artifacts/ask/<agent>-<ISO8601>.md` with the descriptor frontmatter (kind=advisor, retention=session, status=complete; schema: `scripts/validate.sh`). For free-standing user invocations without a slug, in-session text output is sufficient and no file is written.
 </Execution_Policy>
 
 <Steps>
@@ -45,10 +45,10 @@ Free-form "looks good" reviews consume time without informing decisions. Severit
 
    **Hand-off directive template** (append to each Task prompt when slug is active):
    ```
-   Also persist your findings to `.specs/<slug>/artifacts/ask/<agent>-<ISO8601>.md` with this YAML frontmatter at the top:
+   Also persist your findings to `.dt-handoff/<slug>/artifacts/ask/<agent>-<ISO8601>.md` with this YAML frontmatter at the top:
    ---
    kind: advisor
-   path: .specs/<slug>/artifacts/ask/<agent>-<ISO8601>.md
+   path: .dt-handoff/<slug>/artifacts/ask/<agent>-<ISO8601>.md
    contentHash: sha256:<sha256 of the body content below, excluding this frontmatter block>
    createdAt: <ISO8601-now>
    producer: <agent-name>
