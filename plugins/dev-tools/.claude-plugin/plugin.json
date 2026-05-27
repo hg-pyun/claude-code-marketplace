@@ -1,7 +1,7 @@
 {
   "name": "dev-tools",
   "description": "Multi-agent dev toolkit: orchestration, code review, git/GitHub workflows, and debugging",
-  "version": "2026.05.27.4",
+  "version": "2026.05.27.5",
   "author": {
     "name": "hg-pyun"
   },
