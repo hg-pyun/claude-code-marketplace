@@ -13,7 +13,7 @@
       "name": "dev-tools",
       "source": "./plugins/dev-tools",
       "description": "Multi-agent dev toolkit: orchestration, code review, git/GitHub workflows, and debugging",
-      "version": "2026.05.29",
+      "version": "2026.05.29.1",
       "keywords": [
         "git",
         "commit",
@@ -39,7 +39,9 @@
         "ralph",
         "team",
         "orchestration",
-        "multi-agent"
+        "multi-agent",
+        "statusline",
+        "ccstatusline"
       ]
     },
     {

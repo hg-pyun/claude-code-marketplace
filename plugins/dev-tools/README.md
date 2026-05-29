@@ -46,6 +46,7 @@ Within `dev-tools` there is no `core` sub-plugin and no cross-plugin invocation 
 | `/github-pr` | skill | Conventional-commit-style PR title + body, in `$LANGUAGE`. |
 | `/git-rebase-stack` | command | Stacked-PR rebase via `git rebase --onto … --update-refs`. |
 | `/curl-debug` | skill | Run a cURL, reverse-trace failures to source. |
+| `/install-statusline` | skill | Install the canonical ccstatusline status line (binary + settings + widget layout). |
 
 Korean trigger phrases (e.g. `"커밋해줘"`, `"PR 만들어줘"`, `"끝까지 가줘"`) work in addition to the slash commands; see each skill's frontmatter for the full list.
 
@@ -184,6 +185,12 @@ When called inside a slug context (e.g. autopilot Phase 5 or `--slug=<slug>`), e
 
 Runs the cURL request and reverse-traces the response back through the codebase using a signal hierarchy: **stack trace > error message > error code > URL path > body shape**. Returns root-cause analysis with file:line citations. No language-dependent artifact.
 
+### Setup
+
+#### `/install-statusline [--scope=user|project] [--dry-run]`
+
+Installs the canonical `ccstatusline`-based status line in one step. Ships two config snapshots as assets — the `statusLine` wiring block and the full widget layout (model · thinking-effort · skills · git-branch · context% · session-clock + usage rows) — and applies all three pieces: installs the `ccstatusline` binary via npm if missing, merges the `statusLine` block into the target `settings.json` (user-level by default; **all other keys preserved**), and writes the widget layout to `~/.config/ccstatusline/settings.json`. Existing files are backed up to `<file>.bak.<timestamp>` first. Use `--dry-run` to preview without changes. No language-dependent artifact.
+
 ### Git & GitHub
 
 #### `/git-commit`
@@ -247,7 +254,7 @@ All orchestration skills key their smart-skip logic on `.dt-handoff/<slug>/spec.
 | `github-pr` | PR description body | `--lang=<value>` |
 | `deep-interview` | Interview prompts + spec body | `--lang=<value>` |
 
-**Exempt** (always conversation-language or always Korean): `git-rebase-stack`, `curl-debug`, `code-review`, all agents.
+**Exempt** (always conversation-language or always Korean): `git-rebase-stack`, `curl-debug`, `code-review`, `install-statusline`, all agents.
 
 **Presets**: Korean, English, Japanese, Chinese. ISO 639-1 codes (`ko`, `en`, `ja`, `zh`) are accepted. Custom strings (`Spanish`, `Bahasa Indonesia`) are passed through verbatim.
 
