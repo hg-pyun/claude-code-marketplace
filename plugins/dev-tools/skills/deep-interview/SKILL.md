@@ -56,14 +56,14 @@ Inspired by the [Ouroboros project](https://github.com/Q00/ouroboros), which dem
 - Interview questions and the final spec are written in `$LANGUAGE`.
 - Section headers in the spec stay English; content is `$LANGUAGE`.
 - Use `AskUserQuestion` — ONE question per turn. Never batch.
-- Each round must explicitly name the **target component**, **weakest dimension**, **why this is the bottleneck**, and the **current ambiguity score**.
+- Each round names the **target component**, **weakest dimension**, **why now**, and the **current ambiguity score** — as a single context line emitted *before* the `AskUserQuestion` call, NOT crammed into the question text.
 - Cover the rubric: Goal / Constraints / Acceptance Criteria / Technical Direction / Context (brownfield) / Open Questions / Out of Scope.
 - Run the bundled `explorer` agent for brownfield codebase facts **before** asking the user about them. Cite the discovered file/path/pattern in any confirmation question.
-- Delegate deep requirements analysis, hidden-constraint extraction, and ambiguity scoring to the `analyst` agent after each meaningful answer block. The skill orchestrates questioning and AskUserQuestion; `analyst` does the heavy analytical pass.
+- Keep the interview lightweight by default. Score ambiguity **inline** (using the Step 3e formula) for simple topics. Dispatch the `analyst` agent for the heavy analytical pass **only when** ambiguity > 0.4 OR there are ≥ 2 active components — i.e. when scoring is genuinely hard. Note inline-mode scoring in the spec metadata.
 - Round 0 topology gate runs **once** before ambiguity scoring; lock the top-level component list before any depth-first questioning.
 - Score clarity after every answer; show the score transparently.
 - When the locked topology has multiple active components, score each one and rotate question targeting across them.
-- At preset round thresholds, activate challenge perspective by dispatching `critic` with the appropriate mode (Contrarian @ R4, Simplifier @ R6, Ontologist @ R8 when ambiguity > 0.3). Each mode is used exactly once.
+- Challenge modes are opt-in pressure, not mandatory ceremony: dispatch `critic` only when the interview reaches the relevant round AND a real assumption/complexity/ontology gap remains (Contrarian @ R4, Simplifier @ R6, Ontologist @ R8 when ambiguity > 0.3). Short interviews that hit the threshold early skip them entirely. Each mode is used at most once.
 - Allow early exit at round 3+ with a transparent warning showing remaining gaps.
 - Soft warning at round 10; hard cap at round 20.
 - Do not implement code in this skill — produce the spec only.
@@ -171,17 +171,28 @@ Repeat until `ambiguity ≤ threshold` OR user exits early OR hard cap reached.
 
 Brownfield confirmation questions MUST cite the repo evidence (file path / symbol / pattern) that triggered the question.
 
-**Step 3b — Ask the question** via `AskUserQuestion`:
+**Step 3b — Ask the question** via `AskUserQuestion`.
 
+Emit ONE short context line as plain text **immediately before** the tool call, then put ONLY the question itself in the `question` field — never pack the metadata into the question text (it makes the prompt unreadable).
+
+Context line (plain text, before the tool call):
 ```
-Round {n} | Component: {target_component} | Targeting: {weakest_dimension} | Why now: {one_sentence_rationale} | Ambiguity: {score}%
+[Round {n} · {target_component} · 모호도 {score}% · {why_now}]
+```
 
+`AskUserQuestion` `question` field (the question, nothing else):
+```
 {question}
 ```
 
-Options should include contextually relevant choices plus free-text.
+Set the `header` chip to the targeted dimension (e.g. `Constraints`, `Goal`). Options should be short, scannable, contextually relevant choices plus free-text; put any recommended option first.
 
-**Step 3c — Dispatch `analyst` for deep analysis.** After the user's answer, write the current idea summary + accumulated answers to `.dt-handoff/<slug>/artifacts/ask/analyst-<ISO8601>.md`, then dispatch `analyst` with an `@handoff-in` block:
+**Step 3c — Score the answer (inline by default; `analyst` when hard).** After the user's answer, decide how to score:
+
+- **Inline (default):** for simple topics — ambiguity ≤ 0.4 AND a single active component — score the dimensions yourself using the Step 3e formula. No agent dispatch, no `events.jsonl` entry. This keeps short interviews fast.
+- **Dispatch `analyst`:** only when ambiguity > 0.4 OR there are ≥ 2 active components (scoring is genuinely hard / needs hidden-constraint extraction).
+
+When dispatching, write the current idea summary + accumulated answers to `.dt-handoff/<slug>/artifacts/ask/analyst-<ISO8601>.md`, then dispatch `analyst` with an `@handoff-in` block:
 
 ```
 @handoff-in
@@ -192,7 +203,7 @@ sizeBytes: <bytes>
 note: Score ambiguity dimensions for each active component based on the latest answer. Flag any hidden constraints or speculative assumptions.
 ```
 
-Log the dispatch and return events to `.dt-handoff/<slug>/events.jsonl`:
+Log the dispatch and return events to `.dt-handoff/<slug>/events.jsonl` (only when `analyst` was actually dispatched — inline-scored rounds log nothing):
 ```json
 {"ts":"<ISO8601>","producer":"deep-interview","consumer":"analyst","event":"dispatch","kind":"handoff","path":".dt-handoff/<slug>/artifacts/ask/analyst-<ISO8601>.md","status":"pending","verdict":null}
 ```
@@ -200,7 +211,7 @@ Log the dispatch and return events to `.dt-handoff/<slug>/events.jsonl`:
 {"ts":"<ISO8601>","producer":"analyst","consumer":"deep-interview","event":"return","kind":"advisor","path":".dt-handoff/<slug>/artifacts/ask/analyst-<ISO8601>.md","status":"complete","verdict":null}
 ```
 
-Consume the `@handoff-out` from `analyst`: read the per-dimension ambiguity scores (Goal / Constraints / Criteria / Context), the assumption list, and the gap list. Use these for the scoring table in Step 3e.
+Consume the `@handoff-out` from `analyst`: read the per-dimension ambiguity scores (Goal / Constraints / Criteria / Context), the assumption list, and the gap list. Use these to compute the ambiguity score and the weakest-dimension gap shown in Step 3e.
 
 **Step 3d — Extract ontology.** Identify key entities (nouns) discussed. For each: name, type (core / supporting / external), fields, relationships. For rounds 2+, compare with the previous round:
 - `stable` = same name in both rounds
@@ -210,27 +221,19 @@ Consume the `@handoff-out` from `analyst`: read the per-dimension ambiguity scor
 
 Round 1 has no comparison; set stability_ratio = N/A.
 
-**Step 3e — Report progress** to the user, incorporating `analyst` scores:
+**Step 3e — Report progress** to the user in **exactly three lines**. Drop the weighted-score table — the per-dimension weight/weighted columns are noise during a live interview; the user only needs to know how close we are and where we're headed next. Keep the dimension scores internal (they still drive the gate); surface only the gap.
 
 ```
-Round {n} complete.
-
-| Dimension          | Score | Weight | Weighted | Gap |
-|--------------------|-------|--------|----------|-----|
-| Goal               | {s}   | {w}    | {s*w}    | {gap or "Clear"} |
-| Constraints        | {s}   | {w}    | {s*w}    | {gap or "Clear"} |
-| Success Criteria   | {s}   | {w}    | {s*w}    | {gap or "Clear"} |
-| Context (brownfield) | {s} | {w}    | {s*w}    | {gap or "Clear"} |
-| **Ambiguity**      |       |        | **{score}%** | |
-
-Topology:  Targeted {target_component} | Active: {N_active} | Deferred: {N_deferred}
-Ontology:  {entity_count} entities | Stability: {stability_ratio} | New: {n} | Changed: {n} | Stable: {n}
-Next target: {weakest_dimension} — {rationale}
-
-{score ≤ threshold ? "Clarity threshold met. Ready to crystallize spec." : "Focusing next question on the weakest dimension."}
+✓ Round {n} 완료 · 모호도 {score}% ({prev_score}→{score})
+가장 약한 고리: {weakest_dimension} — {gap}
+다음: {next_focus}
 ```
 
-Ambiguity formula applied to `analyst`-returned scores:
+When `score ≤ threshold`, replace the third line with `임계치 도달 — spec으로 정리합니다.` instead of a next target.
+
+Do NOT print the full clarity table, topology counts, or ontology row each round. The complete per-dimension breakdown is recorded once in the final spec, not repeated every turn. (When > 1 active component is in play, name which component you targeted in the first line, e.g. `✓ Round {n} 완료 · {target_component} · 모호도 {score}%`.)
+
+Ambiguity formula (applied to inline scores, or to `analyst`-returned scores when dispatched):
 - Greenfield: `ambiguity = 1 − (goal × 0.40 + constraints × 0.30 + criteria × 0.30)`
 - Brownfield: `ambiguity = 1 − (goal × 0.35 + constraints × 0.25 + criteria × 0.25 + context × 0.15)`
 
@@ -243,7 +246,7 @@ When multiple active components exist, use the **minimum** per-dimension score a
 
 ### Phase 4: Challenge Modes via `critic`
 
-At preset round thresholds, dispatch `critic` with a focused mode prompt to inject an adversarial perspective into the next question. Each mode is dispatched exactly once. Write the current spec draft to `.dt-handoff/<slug>/artifacts/ask/critic-<ISO8601>.md` and pass it via `@handoff-in`.
+Challenge modes are **opt-in**, not automatic. When the interview reaches the relevant round AND a real gap remains, dispatch `critic` with a focused mode prompt to inject an adversarial perspective into the next question. Each mode is dispatched at most once; a short interview that hits the threshold before R4 uses none. Write the current spec draft to `.dt-handoff/<slug>/artifacts/ask/critic-<ISO8601>.md` and pass it via `@handoff-in`.
 
 Log each critic dispatch and return to `.dt-handoff/<slug>/events.jsonl`:
 ```json
@@ -302,14 +305,13 @@ Spec structure (headers stay English; content in `$LANGUAGE`):
 - Status: PASSED | EARLY_EXIT | HARD_CAP
 
 ## Clarity Breakdown
-| Dimension          | Score | Weight | Weighted |
-|--------------------|-------|--------|----------|
-| Goal               | …     | …      | …        |
-| Constraints        | …     | …      | …        |
-| Success Criteria   | …     | …      | …        |
-| Context (brownfield) | …   | …      | …        |
-| **Total Clarity**  |       |        | **…**    |
-| **Ambiguity**      |       |        | **…**    |
+| Dimension            | Gap (or "Clear") |
+|----------------------|------------------|
+| Goal                 | …                |
+| Constraints          | …                |
+| Success Criteria     | …                |
+| Context (brownfield) | …                |
+| **Ambiguity**        | **…%**           |
 
 ## Topology
 | Component | Status   | Description | Coverage / Deferral Note |
@@ -377,8 +379,8 @@ Spec structure (headers stay English; content in `$LANGUAGE`):
 <Tool_Usage>
 - `AskUserQuestion` for every interview question — one per turn, with contextual options + free-text.
 - `Task(subagent_type="explorer", prompt="…")` for brownfield codebase exploration (run BEFORE asking the user about codebase facts). Explorer findings are returned inline (no disk artifact); log dispatch/return events.
-- `Task(subagent_type="analyst", prompt="…")` after each meaningful answer block for deep requirements analysis, hidden-constraint extraction, and per-dimension ambiguity scoring. Pass a `@handoff-in` block referencing the accumulated answers artifact. When `sizeBytes ≤ 4096` inline the body directly. Log dispatch/return events.
-- `Task(subagent_type="critic", prompt="…")` at Round 4 (Contrarian), Round 6 (Simplifier), and Round 8+ (Ontologist, if ambiguity > 0.3). Pass a `@handoff-in` block referencing the current spec draft. Consume `@handoff-out` verdict. Log dispatch/return events.
+- `Task(subagent_type="analyst", prompt="…")` **conditionally** — only when ambiguity > 0.4 OR ≥ 2 active components. Otherwise score inline (no dispatch). When dispatched: pass a `@handoff-in` block referencing the accumulated answers artifact; when `sizeBytes ≤ 4096` inline the body directly; log dispatch/return events. Inline-scored rounds log nothing.
+- `Task(subagent_type="critic", prompt="…")` **only when a real gap remains** at Round 4 (Contrarian), Round 6 (Simplifier), or Round 8+ (Ontologist, if ambiguity > 0.3). Skip entirely if the threshold is met early. Pass a `@handoff-in` block referencing the current spec draft. Consume `@handoff-out` verdict. Log dispatch/return events.
 - `Bash` only to: create the slug directory if missing (`mkdir -p .dt-handoff/<slug>/artifacts/ask/ .dt-handoff/<slug>/`), compute `sha256` hashes, and append events to `events.jsonl`.
 - `Write` to save the final spec to `.dt-handoff/<slug>/spec.md` and intermediate analyst input artifacts to `.dt-handoff/<slug>/artifacts/ask/`.
 - Do NOT delegate execution from this skill. Producing the spec is the terminal step.
@@ -440,13 +442,12 @@ Skill reads the scores from that file, computes weighted ambiguity, and displays
 - Did I log explorer dispatch and return events to `events.jsonl`?
 - Did Round 0 lock the topology before any ambiguity scoring?
 - Did I ask exactly ONE question per turn in `$LANGUAGE`?
-- Did every round dispatch `analyst` with a `@handoff-in` block for deep analysis and consume the `@handoff-out` scores?
-- Did I log every analyst dispatch/return to `events.jsonl`?
-- Did every round display the target component, weakest dimension, why-now rationale, and ambiguity score?
+- Did I emit the metadata as a single context line BEFORE the `AskUserQuestion` call, keeping the `question` field to the question alone (no pipe-packed header)?
+- Did I score inline by default and dispatch `analyst` only when ambiguity > 0.4 OR ≥ 2 active components — logging events only when actually dispatched?
+- Did I keep each round's progress report to the three-line format (no weighted table, no topology/ontology rows)?
 - For N > 1 active components, did I rotate targeting instead of drilling one component?
-- Did I dispatch `critic` (Contrarian @ R4, Simplifier @ R6, Ontologist @ R8 if ambiguity > 0.3) — each exactly once?
-- Did I log every critic dispatch/return (and consume its `@handoff-out`) to `events.jsonl`?
-- Did I show the per-round clarity table and ontology row?
+- Did I dispatch `critic` only when a real gap remained (Contrarian @ R4, Simplifier @ R6, Ontologist @ R8 if ambiguity > 0.3) — at most once each, skipping when the threshold was met early?
+- Did I log every critic dispatch/return (and consume its `@handoff-out`) to `events.jsonl` when used?
 - Did the final spec cover Topology / Goal / Constraints / Non-Goals / Acceptance Criteria / Technical Direction / Tradeoffs / Open Questions / Ontology / Transcript?
 - Did I write the spec to `.dt-handoff/<slug>/spec.md` with the descriptor frontmatter (schema ref: `scripts/validate.sh`)?
 - Did I append the `complete` event to `events.jsonl` after writing the spec?
