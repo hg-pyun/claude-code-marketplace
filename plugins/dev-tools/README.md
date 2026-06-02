@@ -38,6 +38,7 @@ Within `dev-tools` there is no `core` sub-plugin and no cross-plugin invocation 
 |------------|------|-----------|
 | `/autopilot` | skill | End-to-end pipeline: interview → plan → execute → QA → validate. |
 | `/deep-interview` | skill | Socratic interview with ambiguity scoring. Writes `spec.md`. |
+| `/interview` | skill | Lightweight in-depth interview (no scoring/agents). Writes `spec.md`. |
 | `/ralplan` | skill | Consensus planning (planner + architect + performance-analyst + critic). Writes `plan.md`. |
 | `/ralph` | skill | PRD-driven sequential execution loop with TDD discipline. |
 | `/team` | skill | 5-stage parallel multi-agent orchestration. |
@@ -155,6 +156,12 @@ Socratic interview with mathematical ambiguity gating (default threshold `0.2`).
 
 Output: `.dt-handoff/<slug>/spec.md`. Refuses handoff until ambiguity ≤ threshold OR user explicitly opts out.
 
+#### `/interview [topic or file path] [--lang=<value>] [--max-rounds=<n>]`
+
+Lightweight, conversational counterpart to `deep-interview`. Asks non-obvious questions one at a time across **Goal / Scope / Technical Implementation / UI & UX / Concerns & Risks / Tradeoffs** — no ambiguity scoring, no topology lock, no agent dispatch. Accepts a free-text topic or a file path. Continues until the dimensions are covered or the user opts out (soft cap 12 rounds).
+
+Output: `.dt-handoff/<slug>/spec.md` (`Status: complete` or `draft` on early exit).
+
 #### `/ralplan [--interactive] [--deliberate] [--from-spec=<path>]`
 
 Consensus planning via **RALPLAN-DR** structured deliberation (Principles → Drivers → Options → pre-mortem). `planner` authors the draft plan; `architect` and `performance-analyst` review in parallel; `critic` owns the single verdict. Iterates until `APPROVE`, max 5 rounds.
@@ -253,6 +260,7 @@ All orchestration skills key their smart-skip logic on `.dt-handoff/<slug>/spec.
 | `git-commit` | Commit subject + body | `--lang=<value>` |
 | `github-pr` | PR description body | `--lang=<value>` |
 | `deep-interview` | Interview prompts + spec body | `--lang=<value>` |
+| `interview` | Interview questions + spec body | `--lang=<value>` |
 
 **Exempt** (always conversation-language or always Korean): `git-rebase-stack`, `curl-debug`, `code-review`, `install-statusline`, all agents.
 

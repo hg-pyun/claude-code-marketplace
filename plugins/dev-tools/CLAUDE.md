@@ -8,8 +8,8 @@ plugins/dev-tools/
 ├── .claude-plugin/plugin.json
 ├── agents/      # 16 agents across 4 lanes — see agents/*.md for roster and role boundaries
 ├── commands/    # git-rebase-stack
-├── skills/      # autopilot deep-interview ralplan ralph team
-│                # code-review curl-debug git-commit github-pr
+├── skills/      # autopilot deep-interview interview ralplan ralph team
+│                # code-review curl-debug git-commit github-pr install-statusline
 ├── scripts/     # cleanup.sh (.dt-handoff retention purge), test-cleanup.sh
 ├── README.md    # user-facing tour
 └── CLAUDE.md    # this guide
