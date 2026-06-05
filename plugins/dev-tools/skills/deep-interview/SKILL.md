@@ -3,8 +3,8 @@ name: deep-interview
 description: >
   Socratic deep interview with mathematical ambiguity gating and challenge
   agents. Surfaces hidden assumptions, scores clarity per dimension
-  (Goal/Constraints/Criteria/Context), and refuses to hand off until ambiguity
-  drops below the configured threshold. Produces a structured spec at
+  (Goal/Constraints/Criteria/Context), and refuses to hand off until no blocking
+  gap remains (tracked via ambiguity scoring against the threshold). Produces a structured spec at
   `.dt-handoff/<slug>/spec.md` in `$LANGUAGE`. Delegates deep requirements /
   hidden-constraint / ambiguity analysis to `analyst`; brownfield mapping to
   `explorer`; challenge modes (Contrarian/Simplifier/Ontologist) to `critic`.
@@ -20,7 +20,7 @@ argument-hint: "[brief idea] [--lang=<value>] [--threshold=<0.0-1.0>] [--max-rou
 ---
 
 <Purpose>
-Interview the user in `$LANGUAGE` to capture requirements for a new project, feature, or change using Socratic questioning with mathematical ambiguity scoring. Ask one question at a time, target the weakest clarity dimension each round, delegate deep requirements / hidden-constraint / ambiguity analysis to the `analyst` agent, activate challenge perspective via the `critic` agent (Contrarian/Simplifier/Ontologist modes) at preset thresholds, and refuse to finalize the spec until ambiguity ≤ threshold (default 0.2) OR the user explicitly opts out with a warning. Output is a structured spec document at `.dt-handoff/<slug>/spec.md`. This skill does NOT implement code — it produces the spec only.
+Interview the user in `$LANGUAGE` to capture requirements for a new project, feature, or change using Socratic questioning with mathematical ambiguity scoring. Draft a best-guess spec up front from the seed idea (and any brownfield findings) so the user corrects deltas instead of answering every dimension from scratch, then ask one question at a time targeting whichever dimension still has a *blocking* gap, delegate deep requirements / hidden-constraint / ambiguity analysis to the `analyst` agent, activate challenge perspective via the `critic` agent (Contrarian/Simplifier/Ontologist modes) at preset thresholds, and refuse to finalize the spec until no blocking gap remains — tracked via per-dimension ambiguity scoring against the threshold (default 0.2) — OR the user explicitly opts out with a warning. Output is a structured spec document at `.dt-handoff/<slug>/spec.md`. This skill does NOT implement code — it produces the spec only.
 </Purpose>
 
 <Use_When>
@@ -56,12 +56,14 @@ Inspired by the [Ouroboros project](https://github.com/Q00/ouroboros), which dem
 - Interview questions and the final spec are written in `$LANGUAGE`.
 - Section headers in the spec stay English; content is `$LANGUAGE`.
 - Use `AskUserQuestion` — ONE question per turn. Never batch.
+- **Draft-first.** Before interrogating, fill every dimension you can reasonably infer from the seed idea + `explorer` findings into a strawman spec draft and present it for correction (Round 1). Only ask about what you genuinely cannot infer or what the user alone must decide. Confirming/correcting a draft is far faster than answering open questions — never ask for anything already derivable from the idea or the codebase.
 - Each round names the **target component**, **weakest dimension**, **why now**, and the **current ambiguity score** — as a single context line emitted *before* the `AskUserQuestion` call, NOT crammed into the question text.
 - Cover the rubric: Goal / Constraints / Acceptance Criteria / Technical Direction / Context (brownfield) / Open Questions / Out of Scope.
 - Run the bundled `explorer` agent for brownfield codebase facts **before** asking the user about them. Cite the discovered file/path/pattern in any confirmation question.
 - Keep the interview lightweight by default. Score ambiguity **inline** (using the Step 3e formula) for simple topics. Dispatch the `analyst` agent for the heavy analytical pass **only when** ambiguity > 0.4 OR there are ≥ 2 active components — i.e. when scoring is genuinely hard. Note inline-mode scoring in the spec metadata.
 - Round 0 topology gate runs **once** before ambiguity scoring; lock the top-level component list before any depth-first questioning.
 - Score clarity after every answer; show the score transparently.
+- **Gate on blocking gaps, not on chasing decimals.** Keep scoring per dimension (the ambiguity score stays the visible signal), but a dimension only holds the interview open while it has a *blocking* gap — an unknown that would change the spec or send execution the wrong way. Once no blocking gap remains, proceed to the spec even if the score sits slightly above threshold; never spend rounds shaving a non-blocking score (e.g. 0.3→0.2).
 - When the locked topology has multiple active components, score each one and rotate question targeting across them.
 - Challenge modes are opt-in pressure, not mandatory ceremony: dispatch `critic` only when the interview reaches the relevant round AND a real assumption/complexity/ontology gap remains (Contrarian @ R4, Simplifier @ R6, Ontologist @ R8 when ambiguity > 0.3). Short interviews that hit the threshold early skip them entirely. Each mode is used at most once.
 - Allow early exit at round 3+ with a transparent warning showing remaining gaps.
@@ -73,7 +75,7 @@ Inspired by the [Ouroboros project](https://github.com/Q00/ouroboros), which dem
 
 <Settings_Reference>
 - `$LANGUAGE`: the language setting from `plugin.json` `settings.language` (default `Korean`). Override with `--lang=<value>`. Presets: Korean, English, Japanese, Chinese. Custom values accepted as free text.
-- `--threshold=<0.0-1.0>`: ambiguity threshold for the gate. Default `0.2` (20%). The interview proceeds to spec crystallization once ambiguity ≤ threshold.
+- `--threshold=<0.0-1.0>`: ambiguity threshold for the gate. Default `0.2` (20%). The interview proceeds to spec crystallization once no blocking gap remains (typically ambiguity ≤ threshold).
 - `--max-rounds=<n>`: hard cap on interview rounds. Default `20`. Soft warning at `10`.
 </Settings_Reference>
 
@@ -124,11 +126,11 @@ This line is required before any other interview content.
 4. **Announce the interview** in `$LANGUAGE`:
 
 ```
-시작합니다. 한 번에 하나씩 질문하면서 모호함이 <threshold_percent>% 이하로 떨어질 때까지 진행합니다.
+시작합니다. 먼저 아는 것으로 초안을 채운 뒤, 막는 부분(blocking gap)만 하나씩 짚어가며 진행합니다.
 
 Idea: "<restated idea>"
 Project type: greenfield | brownfield
-Current ambiguity: 100% (not scored yet)
+Ambiguity: not scored yet
 ```
 
 ### Phase 2: Round 0 — Topology Enumeration Gate
@@ -157,7 +159,9 @@ Options should include **Looks right**, **Add/remove/merge**, **Defer one or mor
 
 ### Phase 3: Interview Loop
 
-Repeat until `ambiguity ≤ threshold` OR user exits early OR hard cap reached.
+Repeat until **no blocking gap remains** (`ambiguity ≤ threshold` is the usual corollary) OR user exits early OR hard cap reached.
+
+**Round 1 — Present the draft.** Before any targeted question, present the strawman spec draft built from the seed idea + `explorer` findings + the locked topology: a best-guess Goal, Constraints, Success Criteria, and Technical Direction for each active component. Ask the user to confirm/correct it in a single pass via `AskUserQuestion` (options such as `대체로 맞음` / `Goal 수정` / `Constraints 수정` / `범위 수정` plus free-text). Score the corrected draft — this one pass typically resolves several dimensions at once and leaves only a few blocking gaps. Then enter the loop below, which targets ONLY the dimensions that still have a *blocking* gap. (This draft-correction pass **counts as Round 1**: the ontology extracted from the corrected draft is the Round 1 baseline for Step 3d, and it is recorded as Round 1 in the transcript — with the draft shown in place of the question.)
 
 **Step 3a — Generate next question.** Identify the active (component, dimension) pair with the LOWEST clarity score. When N > 1 active components are similarly weak, rotate targeting (don't ask twice in a row about the same component). State, in one sentence, why this pair is the bottleneck.
 
@@ -213,6 +217,8 @@ Log the dispatch and return events to `.dt-handoff/<slug>/events.jsonl` (only wh
 
 Consume the `@handoff-out` from `analyst`: read the per-dimension ambiguity scores (Goal / Constraints / Criteria / Context), the assumption list, and the gap list. Use these to compute the ambiguity score and the weakest-dimension gap shown in Step 3e.
 
+**Mark blocking vs non-blocking.** Whether you scored inline or via `analyst`, tag each unresolved dimension's gap as *blocking* (an unknown that would change the spec or send execution the wrong way — the criterion in `Execution_Policy`) or *non-blocking* (detail that can be safely defaulted or deferred). The count of blocking gaps is the `{k}` reported in Step 3e, and the gate fires only when `{k}` reaches 0 — a merely-low non-blocking score never justifies another round.
+
 **Step 3d — Extract ontology.** Identify key entities (nouns) discussed. For each: name, type (core / supporting / external), fields, relationships. For rounds 2+, compare with the previous round:
 - `stable` = same name in both rounds
 - `changed` = renamed (same type + >50% field overlap)
@@ -224,12 +230,12 @@ Round 1 has no comparison; set stability_ratio = N/A.
 **Step 3e — Report progress** to the user in **exactly three lines**. Drop the weighted-score table — the per-dimension weight/weighted columns are noise during a live interview; the user only needs to know how close we are and where we're headed next. Keep the dimension scores internal (they still drive the gate); surface only the gap.
 
 ```
-✓ Round {n} 완료 · 모호도 {score}% ({prev_score}→{score})
-가장 약한 고리: {weakest_dimension} — {gap}
+✓ Round {n} 완료 · 모호도 {score}% ({prev_score}→{score}) · 남은 blocking gap {k}개
+가장 약한 고리: {weakest_dimension} — {blocking gap, or "blocking 없음"}
 다음: {next_focus}
 ```
 
-When `score ≤ threshold`, replace the third line with `임계치 도달 — spec으로 정리합니다.` instead of a next target.
+When **no blocking gap remains** (usually also `score ≤ threshold`), replace the third line with `남은 blocking gap 없음 — spec으로 정리합니다.` instead of a next target. Do not keep asking just to push a non-blocking score from e.g. 0.25→0.20.
 
 Do NOT print the full clarity table, topology counts, or ontology row each round. The complete per-dimension breakdown is recorded once in the final spec, not repeated every turn. (When > 1 active component is in play, name which component you targeted in the first line, e.g. `✓ Round {n} 완료 · {target_component} · 모호도 {score}%`.)
 
@@ -237,7 +243,7 @@ Ambiguity formula (applied to inline scores, or to `analyst`-returned scores whe
 - Greenfield: `ambiguity = 1 − (goal × 0.40 + constraints × 0.30 + criteria × 0.30)`
 - Brownfield: `ambiguity = 1 − (goal × 0.35 + constraints × 0.25 + criteria × 0.25 + context × 0.15)`
 
-When multiple active components exist, use the **minimum** per-dimension score across components (so one well-understood component cannot mask a fuzzy sibling).
+When multiple active components exist, use the **minimum** per-dimension score across components for the displayed score (so one well-understood component cannot mask a fuzzy sibling). For the *gate*, what matters is whether any component still has a *blocking* gap — target those; do not let a merely-low (non-blocking) score on one sibling spin extra rounds.
 
 **Step 3f — Check soft limits.**
 - Round 3+: allow early exit if user says "enough" / "충분해" / "let's go" — proceed to Phase 5 with a transparent warning.
@@ -264,7 +270,7 @@ After receiving `critic`'s `@handoff-out`, incorporate its findings into the nex
 
 ### Phase 5: Crystallize Spec
 
-When ambiguity ≤ threshold OR hard cap reached OR early exit chosen:
+When no blocking gap remains (ambiguity ≤ threshold) OR hard cap reached OR early exit chosen:
 
 1. **Slugify** the title for the filename.
 2. **Create** `.dt-handoff/<slug>/` if missing.
@@ -365,12 +371,15 @@ Spec structure (headers stay English; content in `$LANGUAGE`):
 <details>
 <summary>Full Q&A (<n> rounds)</summary>
 
-### Round 1
-**Q:** …
-**A:** …
+### Round 1 (draft presented & corrected)
+**Draft:** <one-line summary of the strawman shown>
+**Corrections:** <user's deltas, or "대체로 맞음">
 **Ambiguity:** …% (Goal: …, Constraints: …, Criteria: …)
 
 ### Round 2
+**Q:** …
+**A:** …
+**Ambiguity:** …%
 …
 </details>
 ```
@@ -430,20 +439,22 @@ path: .dt-handoff/my-feature/artifacts/ask/analyst-2026-05-27T10:00:00Z.md
 status: complete
 contentHash: sha256:def…
 sizeBytes: 1820
-summary: 5 req units, 3 gaps, aggregate ambiguity 2.1 (clarify before planning)
+summary: 5 req units, 3 gaps (1 blocking), aggregate ambiguity 0.42 (clarify before planning)
 ```
-Skill reads the scores from that file, computes weighted ambiguity, and displays the Round 3 clarity table.
+Skill reads the scores from that file, computes weighted ambiguity, and reports the three-line progress (Step 3e) — surfacing the remaining blocking gap, not a full table.
 </Examples>
 
 <Final_Checklist>
 - Did Phase 0 emit the threshold marker as the first user-visible line?
 - Did I restate the seed idea in one sentence before interviewing?
+- Did I present a best-guess draft (Round 1) and let the user correct deltas, instead of interrogating every dimension from scratch?
 - Did I run `explorer` for brownfield before asking the user about codebase facts?
 - Did I log explorer dispatch and return events to `events.jsonl`?
 - Did Round 0 lock the topology before any ambiguity scoring?
 - Did I ask exactly ONE question per turn in `$LANGUAGE`?
 - Did I emit the metadata as a single context line BEFORE the `AskUserQuestion` call, keeping the `question` field to the question alone (no pipe-packed header)?
 - Did I score inline by default and dispatch `analyst` only when ambiguity > 0.4 OR ≥ 2 active components — logging events only when actually dispatched?
+- Did I gate on remaining *blocking* gaps (not on shaving a non-blocking score toward threshold)?
 - Did I keep each round's progress report to the three-line format (no weighted table, no topology/ontology rows)?
 - For N > 1 active components, did I rotate targeting instead of drilling one component?
 - Did I dispatch `critic` only when a real gap remained (Contrarian @ R4, Simplifier @ R6, Ontologist @ R8 if ambiguity > 0.3) — at most once each, skipping when the threshold was met early?
@@ -465,6 +476,8 @@ Skill reads the scores from that file, computes weighted ambiguity, and displays
 | 0.2 – 0.4   | Significant gaps | Focus on weakest dimension |
 | 0.4 – 0.6   | Very unclear | Consider reframing (Ontologist) |
 | > 0.6       | Almost nothing known | Early rounds, keep going |
+
+> **Gate note:** the actual stop condition is *no blocking gap remains*, not the score crossing a line. A score slightly above threshold still crystallizes if nothing blocking is left (see `Execution_Policy`); these ranges are guidance for where to focus, not a hard cutoff.
 
 ## Brownfield vs Greenfield Weights
 
