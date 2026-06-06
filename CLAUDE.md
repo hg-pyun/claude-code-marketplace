@@ -131,7 +131,7 @@ bash scripts/validate.sh --descriptors --target=<path>  # single file
 
 ## Adding a plugin
 1. Copy `templates/plugin/` to `plugins/<new-name>/`; rename.
-2. Edit `.claude-plugin/plugin.json` — `name`, `description`, `version`, `author` (object), optional `settings.language`. Add a thin `CLAUDE.md` per the per-plugin pattern.
+2. Edit `.claude-plugin/plugin.json` — `name`, `description`, `version`, `author` (object), optional `settings.language`. Fill in the copied `CLAUDE.md` scaffold per the per-plugin pattern, and rename/replace the placeholder `commands/EXAMPLE.md` and `skills/EXAMPLE/SKILL.md` with your real entrypoints (or delete them).
 3. Author source files in the 9-section XML house style (README & CLAUDE.md & agents exempt).
 4. Append an entry to `.claude-plugin/marketplace.json` `plugins`, keep it sorted:
    `jq '.plugins |= sort_by(.name)' .claude-plugin/marketplace.json | sponge …`

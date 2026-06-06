@@ -37,7 +37,7 @@
       Task(subagent_type="reviewer", prompt="…")
 
   The prior `core:<agent>` form and the missing-`core` fallback contract were
-  removed in the 2026-05-22.1 consolidation. If your new plugin needs an agent
+  removed in the 2026-05-22 single-plugin consolidation. If your new plugin needs an agent
   that lives in `dev-tools`, just reference it by its bare name. List the
   agents you invoke here, e.g.:
 

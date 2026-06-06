@@ -39,7 +39,7 @@ Within `dev-tools` there is no `core` sub-plugin and no cross-plugin invocation 
 | `/autopilot` | skill | End-to-end pipeline: interview → plan → execute → QA → validate. |
 | `/deep-interview` | skill | Socratic interview with ambiguity scoring. Writes `spec.md`. |
 | `/interview` | skill | Lightweight in-depth interview (no scoring/agents). Writes `spec.md`. |
-| `/ralplan` | skill | Consensus planning (planner + architect + performance-analyst + critic). Writes `plan.md`. |
+| `/ralplan` | skill | Candidate-panel consensus: `architect`×N generate distinct approaches, a separated `critic` attacks each, a distinct `critic` synthesizes a ranked ADR. Writes `plan.md`. |
 | `/ralph` | skill | PRD-driven sequential execution loop with TDD discipline. |
 | `/team` | skill | 5-stage parallel multi-agent orchestration. |
 | `/code-review` | skill | Multi-domain severity-rated review (reviewer + security-auditor + doc-writer). |
@@ -58,16 +58,15 @@ Korean trigger phrases (e.g. `"커밋해줘"`, `"PR 만들어줘"`, `"끝까지 
 The four orchestration skills form a single, resumable lifecycle:
 
 ```
-┌────────────────┐   ┌─────────┐   ┌────────────┐   ┌──────────────────┐   ┌────────────┐
-│ deep-interview │ → │ ralplan │ → │ ralph      │ → │ test-engineer    │ → │ architect  │
-│   spec.md      │   │ plan.md │   │   or team  │   │   + executor     │   │ + critic   │
-│                │   │         │   │ prd.json   │   │   + verifier     │   │ + reviewer │
-└────────────────┘   └─────────┘   │ + code     │   │  QA (max 5 iter) │   │ Validation │
-                                   │ + progress │   └──────────────────┘   └────────────┘
-                                   └────────────┘
+Phase 1  Expansion    deep-interview   → spec.md
+Phase 2  Planning      ralplan          → plan.md  (Status: pending approval)
+Phase 3  Execution     ralph | team     → prd.json + code + progress
+Phase 4  QA gate       test-engineer + executor + verifier   (≤ 5 cycles)
+Phase 5  Validation    reviewer + security-auditor + architect   (default gates)
+                       └─ --full-validation adds critic + performance-analyst + doc-writer
 ```
 
-`/autopilot` is the conductor that sequences all five phases in a single invocation and auto-skips phases whose artifacts already exist on disk. Resuming a yesterday's interview takes one command.
+`/autopilot` is the conductor that sequences all five phases in one invocation and, under `--resume=auto` (default), auto-skips phases whose artifacts already exist on disk — resuming yesterday's interview takes one command.
 
 **Hard stop at "ready for commit".** Every orchestration skill — `ralph`, `team`, `autopilot` — refuses to commit, push, or open a PR. Those moves are explicit user gestures via `/git-commit` and `/github-pr`. The pipeline puts the change on disk and tells you it's done; you decide what ships.
 
@@ -76,7 +75,8 @@ When to pick what:
 | Situation | Skill |
 |-----------|-------|
 | "I have an idea, take it to ready-for-review" | `/autopilot` |
-| "Capture requirements only" | `/deep-interview` |
+| "Capture requirements — heavy, ambiguity-gated" | `/deep-interview` |
+| "Capture requirements — fast, conversational" | `/interview` |
 | "I have a spec, give me a vetted plan" | `/ralplan` |
 | "Execute this plan, one story at a time, TDD-strict" | `/ralph` |
 | "Execute this plan with parallel workstreams" | `/team` |
@@ -122,7 +122,7 @@ Sixteen specialist agents organized in four lanes. Read-only advisors carry `dis
 
 | Agent | Model | Writes? | Role |
 |-------|-------|---------|------|
-| `critic` | opus | no | Adversarial plan critique with explicit verdict (`REJECT` / `REVISE` / `ACCEPT-WITH-RESERVATIONS` / `ACCEPT`). |
+| `critic` | opus | no | Adversarial plan critique with explicit verdict (`REJECT` / `REVISE` / `ACCEPT_WITH_RESERVATIONS` / `APPROVE`). |
 
 Invoke via the Task tool — no plugin prefix:
 
@@ -138,7 +138,7 @@ Task(subagent_type="security-auditor", prompt="...")
 
 ### Orchestration
 
-#### `/autopilot [--exec=ralph|team] [--skip-phase1] [--skip-phase2] [--deliberate]`
+#### `/autopilot [--exec=ralph|team] [--resume=auto|fresh] [--no-prompt] [--deliberate] [--full-validation] [--max-qa-cycles=<n>] [--threshold=<0.0-1.0>]`
 
 End-to-end 5-phase pipeline from idea to code-ready state. Sequences:
 
@@ -146,9 +146,9 @@ End-to-end 5-phase pipeline from idea to code-ready state. Sequences:
 2. **Planning** — `ralplan` → `plan.md` (`pending approval`)
 3. **Execution** — `ralph` (sequential) or `team` (parallel) → code + `prd.json` + `progress.txt`
 4. **QA** — `test-engineer` + `executor` + `verifier` pass, up to 5 iterations
-5. **Validation** — `architect` + `critic` + `reviewer` (+ optional `security-auditor`, `performance-analyst`, `doc-writer`, `verifier`) → `autopilot-validation.md`
+5. **Validation** — default gates `reviewer` + `security-auditor` + `architect`; `--full-validation` adds `critic` (gate) plus `performance-analyst` + `doc-writer` advisors; optional final `verifier` check → `autopilot-validation.md`
 
-Smart-skip: existing `spec.md` skips Phase 1; existing `plan.md` skips Phases 1–2. Stops at "ready for commit".
+Smart-skip: existing `spec.md` skips Phase 1; existing `plan.md` skips Phases 1–2. Skip is governed by `--resume` (default `auto`): the detected resumption point is confirmed once via `AskUserQuestion` unless `--no-prompt`; `--resume=fresh` restarts at Phase 1. Stops at "ready for commit".
 
 #### `/deep-interview [topic] [--lang=<value>] [--threshold=<0.0-1.0>] [--max-rounds=<n>]`
 
@@ -162,9 +162,9 @@ Lightweight, conversational counterpart to `deep-interview`. Asks non-obvious qu
 
 Output: `.dt-handoff/<slug>/spec.md` (`Status: complete` or `draft` on early exit).
 
-#### `/ralplan [--interactive] [--deliberate] [--from-spec=<path>]`
+#### `/ralplan [--tier=LOW|MEDIUM|HIGH] [--interactive] [--deliberate] [--from-spec=<path>] [--lang=<value>]`
 
-Consensus planning via **RALPLAN-DR** structured deliberation (Principles → Drivers → Options → pre-mortem). `planner` authors the draft plan; `architect` and `performance-analyst` review in parallel; `critic` owns the single verdict. Iterates until `APPROVE`, max 5 rounds.
+Candidate-panel consensus engine. Phase 0 risk triage sets panel width N (`LOW=1` / `MEDIUM=2` / `HIGH=3`, hard cap 4) and attack depth. `architect ×N` generate genuinely distinct candidates (orthogonal framing lenses, mutually blind); MEDIUM/HIGH add an independent `architect` evaluation pass (HIGH also `performance-analyst ×N`); a **separated** `critic` adversarially attacks each candidate (author ≠ attacker by dispatch topology); a **distinct** synthesizing `critic` ranks the survivors into one ADR. Routing is on the synthesizer's machine `verdict`; the iteration cap is tier-proportional (`LOW=1` / `MEDIUM=2` / `HIGH=3`, all-invalidated HIGH `+1`). `--deliberate` is an alias for `--tier=HIGH`, retained for backward compatibility.
 
 Output: `.dt-handoff/<slug>/plan.md`, always marked `Status: pending approval`. This skill never executes — `ralph` / `team` / `autopilot` are the execution paths.
 
