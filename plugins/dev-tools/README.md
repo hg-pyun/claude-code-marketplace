@@ -40,9 +40,9 @@ Within `dev-tools` there is no `core` sub-plugin and no cross-plugin invocation 
 | `/deep-interview` | skill | Socratic interview with ambiguity scoring. Writes `spec.md`. |
 | `/interview` | skill | Lightweight in-depth interview (no scoring/agents). Writes `spec.md`. |
 | `/ralplan` | skill | Candidate-panel consensus: `architect`×N generate distinct approaches, a separated `critic` attacks each, a distinct `critic` synthesizes a ranked ADR. Writes `plan.md`. |
-| `/ralph` | skill | PRD-driven sequential execution loop with TDD discipline. |
+| `/ralph` | skill | PRD-driven execution loop with TDD discipline; independent stories run as pipelined waves. |
 | `/team` | skill | 5-stage parallel multi-agent orchestration. |
-| `/code-review` | skill | Multi-domain severity-rated review (reviewer + security-auditor + doc-writer). |
+| `/code-review` | skill | Multi-domain severity-rated review (`reviewer` always; `security-auditor` / `doc-writer` join when the diff touches their surface). |
 | `/git-commit` | skill | Conventional-commit message + commit, in `$LANGUAGE`. |
 | `/github-pr` | skill | Conventional-commit-style PR title + body, in `$LANGUAGE`. |
 | `/git-rebase-stack` | command | Stacked-PR rebase via `git rebase --onto … --update-refs`. |
@@ -101,7 +101,7 @@ Model column: `inherit (session)` means no `model` pin in the agent frontmatter 
 | `debugger` | sonnet | no | Root-cause analysis advisor; diagnoses build/test/runtime failures with a 4-phase RCA protocol and hands off a concrete hypothesis. |
 | `tracer` | sonnet | no | Evidence-driven causal tracing; reverse-traces an observed effect to responsible code and ranks competing hypotheses. |
 | `executor` | sonnet | yes | Focused code implementation. Small-correct-diff principle, TDD Iron Law enforcement. After 3 fails, escalates to `debugger` (root cause unclear) or `architect` (design wrong). |
-| `verifier` | sonnet | no | Completion-verification gate; runs BUILD/TEST/LINT/FUNCTIONALITY/TODO/ERROR_FREE with fresh command output and returns a machine-readable `verdict`. |
+| `verifier` | sonnet | no | Completion-verification gate; runs BUILD/TEST/LINT/FUNCTIONALITY/TODO/ERROR_FREE with fresh command output and returns a machine-readable `verdict`. Sonnet pin is deliberate — it is the highest-volume gate and largely mechanical command execution. Callers can scope a dispatch to a check subset via `note: scope=<CHECKS>`; unlisted checks are recorded `N/A — deferred to batch gate`. |
 
 ### Review lane
 
@@ -117,8 +117,8 @@ Model column: `inherit (session)` means no `model` pin in the agent frontmatter 
 |-------|-------|---------|------|
 | `test-engineer` | sonnet | tests only | Red-step authoring, coverage gap analysis, flaky-test diagnosis. TDD Iron Law enforcement. |
 | `doc-writer` | sonnet | dual-mode | Doc gap/staleness/consistency analysis in advisor mode; authors directly in autonomous mode. |
-| `git-master` | sonnet | yes (git ops only) | Encapsulates git mechanics (status, diff, staging, commit construction, rebase, push) for the git/GitHub skills. Never mutates on its own initiative — only when a user-triggered skill directs it. |
-| `code-simplifier` | sonnet | yes | Behavior-preserving simplification of a bounded changed-file set; re-verifies via `verifier` after cleanup. Used by `ralph` (Step 7.5) and `team` cleanup passes. |
+| `git-master` | sonnet | yes (git ops only) | Encapsulates git mechanics (status, diff, staging, rebase, history traversal) for the `git-rebase-stack` command's high-risk path; `git-commit` / `github-pr` are intentionally inline. Never mutates on its own initiative — only when a user-triggered skill directs it. |
+| `code-simplifier` | sonnet | yes | Behavior-preserving simplification of a bounded changed-file set; re-verifies with scoped tests after cleanup (the orchestrating skill's verifier gate performs the full re-check). Used by `ralph` (Step 7.5) and `team` cleanup passes. |
 
 ### Coordination lane
 
@@ -146,15 +146,15 @@ End-to-end 5-phase pipeline from idea to code-ready state. Sequences:
 
 1. **Expansion** — `deep-interview` → `spec.md`
 2. **Planning** — `ralplan` → `plan.md` (`pending approval`)
-3. **Execution** — `ralph` (sequential) or `team` (parallel) → code + `prd.json` + `progress.txt`
-4. **QA** — `test-engineer` + `executor` + `verifier` pass, up to 5 iterations
-5. **Validation** — default gates `reviewer` + `security-auditor` + `architect`; `--full-validation` adds `critic` (gate) plus `performance-analyst` + `doc-writer` advisors; optional final `verifier` check → `autopilot-validation.md`
+3. **Execution** — `ralph` (story waves; tail gates deferred to Phases 4–5 via `--approver=defer --regression=defer`) or `team` (parallel stages) → code + `prd.json` + `progress.txt`; routed on the plan's `Parallel workstreams` metadata
+4. **QA** — full `verifier` regression always; `test-engineer` coverage audit runs in cycle 1 only for team/resume/HIGH-tier provenance (otherwise it joins the Phase 5 panel read-only); up to `--max-qa-cycles` (default 5), with an early stop after 3 cycles of the same failing checks
+5. **Validation** — default gates `reviewer` + `security-auditor` + `architect`; `--full-validation` adds `critic` (gate) plus `performance-analyst` + `doc-writer` advisors and the optional end-to-end `verifier` (fired in the same parallel batch) → `autopilot-validation.md`. Gate failures with ≤ 3 non-architectural findings take a targeted-fix path (executor + scoped verifier + re-fire failed gates only) instead of full Phase 3 re-entry
 
 Smart-skip: existing `spec.md` skips Phase 1; existing `plan.md` skips Phases 1–2. Skip is governed by `--resume` (default `auto`): the detected resumption point is confirmed once via `AskUserQuestion` unless `--no-prompt`; `--resume=fresh` restarts at Phase 1. Stops at "ready for commit".
 
 #### `/deep-interview [topic] [--lang=<value>] [--threshold=<0.0-1.0>] [--max-rounds=<n>]`
 
-Socratic interview with mathematical ambiguity gating (default threshold `0.2`). Per-dimension scoring across **Goal / Constraints / Criteria / Context**. Round 0 establishes topology; subsequent rounds target the weakest dimension. Delegates deep requirement analysis and ambiguity scoring to `analyst`; brownfield codebase mapping to `explorer`; challenge modes (Contrarian / Simplifier / Ontologist) to `critic` at preset round thresholds.
+Socratic interview with mathematical ambiguity gating (default threshold `0.2`). Per-dimension scoring across **Goal / Constraints / Criteria / Context** runs inline every round; `analyst` is dispatched only at checkpoints (post-draft, pre-crystallize, scope shifts, stalls) with delta payloads. Round 0 establishes topology (auto-locked when a single component is detected); subsequent rounds target the weakest dimension. Brownfield codebase mapping goes to `explorer` (brownfield only — detection is inline); challenge modes (Contrarian / Simplifier / Ontologist) use the `critic` single-finding fast-path at preset round thresholds. Early exit is allowed at any round.
 
 Output: `.dt-handoff/<slug>/spec.md`. Refuses handoff until ambiguity ≤ threshold OR user explicitly opts out.
 
@@ -166,13 +166,13 @@ Output: `.dt-handoff/<slug>/spec.md` (`Status: complete` or `draft` on early exi
 
 #### `/ralplan [--tier=LOW|MEDIUM|HIGH] [--interactive] [--deliberate] [--from-spec=<path>] [--lang=<value>]`
 
-Candidate-panel consensus engine. Phase 0 risk triage sets panel width N (`LOW=1` / `MEDIUM=2` / `HIGH=3`, hard cap 4) and attack depth. `architect ×N` generate genuinely distinct candidates (orthogonal framing lenses, mutually blind); MEDIUM/HIGH add an independent `architect` evaluation pass (HIGH also `performance-analyst ×N`); a **separated** `critic` adversarially attacks each candidate (author ≠ attacker by dispatch topology); a **distinct** synthesizing `critic` ranks the survivors into one ADR. Routing is on the synthesizer's machine `verdict`; the iteration cap is tier-proportional (`LOW=1` / `MEDIUM=2` / `HIGH=3`, all-invalidated HIGH `+1`). `--deliberate` is an alias for `--tier=HIGH`, retained for backward compatibility.
+Candidate-panel consensus engine. Phase 0 risk triage sets panel width N (`LOW=1` / `MEDIUM=2` / `HIGH=3`, hard cap 4) and attack depth (1 lens per candidate LOW/MEDIUM, 2 HIGH). `architect ×N` generate genuinely distinct candidates (orthogonal framing lenses, mutually blind); the MEDIUM/HIGH `architect` evaluation pass (HIGH also `performance-analyst ×N`) and the **separated** `critic` attacks fire as one parallel wave (author ≠ attacker by dispatch topology); a **distinct** synthesizing `critic` ranks the survivors into one ADR and records `Parallel workstreams` metadata for downstream routing. Routing is on the synthesizer's machine `verdict`; the iteration cap is tier-proportional (`LOW=1` / `MEDIUM=2` / `HIGH=3`, all-invalidated HIGH `+1`). `--deliberate` is an alias for `--tier=HIGH`, retained for backward compatibility.
 
 Output: `.dt-handoff/<slug>/plan.md`, always marked `Status: pending approval`. This skill never executes — `ralph` / `team` / `autopilot` are the execution paths.
 
-#### `/ralph [--no-deslop] [--critic=architect|critic] [--from-plan=<path>]`
+#### `/ralph [--no-deslop] [--critic=architect|critic] [--from-plan=<path>] [--max-parallel=<k>] [--approver=defer] [--regression=defer]`
 
-PRD-driven sequential persistence loop. Reads `.dt-handoff/<slug>/prd.json`, picks the highest-priority story with `passes: false`, drives Red → Green → Refactor via `test-engineer` + `executor`, verifies acceptance criteria with fresh evidence via the `verifier` agent, runs `reviewer` approval, then a `code-simplifier` cleanup pass (Step 7.5), then re-verifies regression with `verifier`.
+PRD-driven persistence loop. Reads `.dt-handoff/<slug>/prd.json` (acceptance criteria clustered into stories by file scope and test surface), selects a ready set of independent stories (file-scope disjoint, up to `--max-parallel`, default 3), and pipelines Red → Green per story via `test-engineer` + `executor` — each story's acceptance criteria verified with scoped fresh evidence (`note: scope=TEST,FUNCTIONALITY`). A single batch tail follows: `reviewer` approval (incremental on re-entry, 3-cycle cap), `code-simplifier` cleanup (Step 7.5), and a full-protocol regression `verifier`. The `defer` flags hand the tail gates to a calling pipeline (autopilot) to eliminate back-to-back duplicate gates — never use them standalone.
 
 **TDD Iron Law**: no production code is written without a failing test first. On 3 consecutive story failures: root cause unclear → escalates to `debugger`; design fundamentally wrong → escalates to `architect`. Continues until every story passes.
 
@@ -186,13 +186,13 @@ Stops at "ready for commit". Single-host filesystem only — see [CLAUDE.md → 
 
 #### `/code-review [path]`
 
-Severity-rated review of the current diff (default) or a named file. Dispatches `reviewer` + `security-auditor` + `doc-writer` in parallel and consolidates CRITICAL / MAJOR / MINOR findings with file:line evidence.
+Severity-rated review of the current diff (default) or a named file. Dispatches `reviewer` always; `security-auditor` joins when the diff touches a security surface (auth/crypto/session, input handling, serialization, config/secrets) or exceeds 150 changed lines; `doc-writer` joins when docs or public API surfaces change. Skipped advisors are noted in the output; slug-context invocations keep the full panel. Findings are consolidated as CRITICAL / MAJOR / MINOR with file:line evidence.
 
 When called inside a slug context (e.g. autopilot Phase 5 or `--slug=<slug>`), each advisor also writes a persistent findings file at `.dt-handoff/<slug>/artifacts/ask/<agent>-<ISO8601>.md` with descriptor frontmatter.
 
 #### `/curl-debug <cURL>`
 
-Runs the cURL request and reverse-traces the response back through the codebase using a signal hierarchy: **stack trace > error message > error code > URL path > body shape**. Returns root-cause analysis with file:line citations. No language-dependent artifact.
+Runs the cURL request and reverse-traces the response back through the codebase using a signal hierarchy: **stack trace > error message > error code > URL path > body shape**. Direct signals (a stack trace naming file:line, or a 404 route lookup) are traced inline; weaker signals dispatch `tracer`. Returns root-cause analysis with file:line citations. No language-dependent artifact.
 
 ### Setup
 
