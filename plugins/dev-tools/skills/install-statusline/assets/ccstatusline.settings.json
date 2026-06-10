@@ -92,16 +92,7 @@
       },
       {
         "id": "95b2d135-f0ec-4b85-8bc4-8ea81b219eca",
-        "type": "weekly-opus-usage",
-        "color": "ansi256:6"
-      },
-      {
-        "id": "dff99d31-f525-4c19-b020-37790ebf94ad",
-        "type": "separator"
-      },
-      {
-        "id": "2ca4a746-e9fb-438c-8b97-99cc0cde2e35",
-        "type": "weekly-sonnet-usage",
+        "type": "weekly-reset-timer",
         "color": "ansi256:6"
       }
     ],
@@ -117,7 +108,7 @@
   "powerline": {
     "enabled": false,
     "separators": [
-      ""
+      ""
     ],
     "separatorInvertBackground": [
       false
