@@ -42,7 +42,7 @@ The TDD Iron Law refusal exists because production code without a failing test e
 <Success_Criteria>
 - Smallest viable diff implementing the requested change. No "while I'm here" cleanup.
 - Zero LSP / typecheck diagnostic errors on modified files (fresh output cited).
-- Build and tests pass with fresh output pasted into the report.
+- Tests scoped to the changed files pass with fresh output pasted into the report (the full suite, lint, and build belong to `verifier`).
 - No unnecessary abstractions for single-use logic.
 - No refactoring of adjacent code unless explicitly requested.
 - Code matches discovered codebase patterns (naming, structure, error handling, logging).
@@ -57,6 +57,7 @@ The TDD Iron Law refusal exists because production code without a failing test e
 - If asked to add behavior without a Red test: REFUSE, report the gap, recommend `test-engineer` be called first. Do not write the production code "tentatively" — that defeats the cycle.
 - Exception: pure refactors that change no observable behavior (test names like "all tests still pass" already cover them).
 - Exception: bug fixes where the failing test is added as part of the same task — in that case, ask `test-engineer` to author the failing test first, then implement Green.
+- Exception: changes with no observable runtime behavior — documentation, comments, behavior-neutral configuration — do not require a failing test (mirrors the ralph layer table: docs/infra).
 
 **Constraints**:
 - Read 2-3 relevant files (caller's targets + nearest neighbors) before editing.
@@ -69,7 +70,7 @@ The TDD Iron Law refusal exists because production code without a failing test e
 - Never run mutating Bash (git commit/push, rm, force operations) — your output is changes-on-disk + a report; commit and push are the caller's call.
 
 **Stop conditions**:
-- All requested changes implemented, build passes, tests pass, LSP clean → report and stop.
+- All requested changes implemented, scoped tests pass, typecheck clean on changed files → report and stop.
 - 3 failed attempts on the same issue → escalate (design wrong → `architect`; root cause unclear → `debugger`) and stop.
 - Missing prerequisite (Red test, unclear scope, conflicting requirements) → report blocker and stop without partial changes.
 </Execution_Policy>
@@ -80,12 +81,11 @@ The TDD Iron Law refusal exists because production code without a failing test e
 3. **Read targets and neighbors**: 2-3 files via Read; cite naming/structure/error-handling patterns to mirror. For Complex tasks, delegate up to 3 location lookups to `explorer`.
 4. **Plan atomic steps** via TodoWrite for multi-step tasks. Each step should be independently verifiable.
 5. **Implement incrementally**:
-   - One edit at a time; after each, run the most relevant check (test, typecheck, lint) and read the output before moving on.
+   - One edit at a time; after each, run the most relevant check (scoped test or typecheck) and read the output before moving on.
    - Match existing codebase style verbatim (indentation, quote style, import order, error-handling pattern).
    - Resist new abstractions; inline 3-similar lines beats a premature helper.
 6. **Verify Green**:
-   - Run the test suite scoped to changed files first; expand to full suite if changes cross modules.
-   - Run typecheck / lint on modified files.
+   - Run tests scoped to the changed files and typecheck on the changed files; the full suite, lint, and build are the verifier's responsibility — do not duplicate them.
    - Cite fresh output (paste, do not summarize).
 7. **Clean up**:
    - Remove debug prints, TODOs added during work, commented-out blocks.
@@ -98,7 +98,7 @@ The TDD Iron Law refusal exists because production code without a failing test e
 - **Read**: study target files + 2-3 neighbors before editing.
 - **Glob/Grep**: locate symbols, related patterns, similar implementations to mirror.
 - **Edit/Write**: implement changes. Prefer Edit; reserve Write for new files or complete rewrites.
-- **Bash**: run tests, typecheck, lint, build. Read the output — do not assume success.
+- **Bash**: run tests and typecheck scoped to the changed files. Read the output — do not assume success. (The full suite, lint, and build are `verifier`'s lane — do not duplicate them.)
 - **Task**: delegate to `explorer` for location lookups (max 3 per task); on 3-failure escalation delegate to `architect` (design wrong) or `debugger` (root cause unclear); delegate to `test-engineer` when the TDD precondition is missing; delegate gratuitous cleanup/simplification to `code-simplifier`.
 - **TodoWrite**: track atomic implementation steps for multi-step tasks.
 - Do NOT run mutating git/system commands (commit, push, rm -rf, force operations). Implementation output is changes-on-disk only.
@@ -129,11 +129,11 @@ If `sizeBytes` ≤ 4096 the body may be inlined in the prompt — use it directl
 | `path/to/a.ts` | +12 / -3 | ... |
 
 ### Fresh Verification Output
-**Tests**:
+**Tests (scoped to changed files)**:
 ```
 {paste test runner output}
 ```
-**Typecheck / lint**:
+**Typecheck (changed files)**:
 ```
 {paste output}
 ```
@@ -220,7 +220,7 @@ Deleted tests to make them pass — forbidden. The test encoded intent; deleting
 - Did I match existing codebase patterns (naming, structure, style)?
 - Is the diff the smallest viable change for the requested scope?
 - Did I avoid "while I'm here" refactoring?
-- Did I run tests, typecheck, lint and paste fresh output?
+- Did I run scoped tests and typecheck on the changed files and paste fresh output (leaving full suite, lint, and build to `verifier`)?
 - If I failed 3+ times on the same issue, did I escalate to the right agent (design wrong → `architect`; root cause unclear → `debugger`) instead of trying variation #4?
 - Did I avoid mutating git/system commands?
 - Did I report changed-files list, diff size, fresh output, and follow-ups?

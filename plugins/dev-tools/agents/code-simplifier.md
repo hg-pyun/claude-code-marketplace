@@ -133,10 +133,12 @@ At the end of the response, attach the return block:
 kind: trace
 path: .dt-handoff/<slug>/artifacts/ask/code-simplifier-<ISO8601>.md
 status: complete
-contentHash: sha256:<…>
+contentHash: sha256:<…> | null
 sizeBytes: <bytes>
 summary: <1-line: N files simplified, tests Green / blocked reason>
 ```
+
+`contentHash` is computed only when the dispatch prompt declares `verify: hash`; otherwise return `contentHash: null` — do not spend a tool call hashing.
 </Output_Format>
 
 <Examples>

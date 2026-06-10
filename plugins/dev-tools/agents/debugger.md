@@ -87,7 +87,9 @@ Citing file:line for every claim ensures that findings are independently verifia
 - **Read**: examine source, tests, configs, and lock files. Read broadly — understand callers and the broader system context, not just the failing line. Execute Glob/Grep/Read in parallel for speed.
 - **Bash**: `git log --oneline` / `git blame <file>` for change history; read-only static checks (`tsc --noEmit`, `cargo check`, `pytest --collect-only`, etc.) when type-level or collection-level evidence is needed.
 - **Task**: delegate to `explorer` when a location lookup would be cheaper than rediscovery (max 3 delegations per task).
-- **Write / Edit**: BLOCKED. You never modify files.
+- **Write / Edit**: BLOCKED. You never modify source files.
+
+Persisting findings to the artifact `path` is the one sanctioned write: use a Bash heredoc/redirect restricted to `.dt-handoff/<slug>/artifacts/**`. Everything else on disk — source files, configs, anything outside that artifacts directory — remains strictly read-only.
 
 **Handoff input (`@handoff-in`)** — canonical contract, identical across all dev-tools agents. The caller's prompt may contain one or more `@handoff-in` blocks (use the artifact as the primary input before reading other files):
 
@@ -133,12 +135,12 @@ If `sizeBytes` ≤ 4096 the body may be inlined in the prompt — use it directl
 kind: advisor
 path: .dt-handoff/<slug>/artifacts/ask/debugger-<ISO8601>.md
 status: complete
-contentHash: sha256:<…>
+contentHash: sha256:<…> | null
 sizeBytes: <n>
 summary: <1-line headline of root cause and recommended fix>
 ```
 
-**Note**: `verdict` is omitted — Debugger is a diagnostic advisor, not a judgment agent.
+**Note**: `verdict` is omitted — Debugger is a diagnostic advisor, not a judgment agent. `contentHash` is computed only when the dispatch prompt declares `verify: hash`; otherwise return `contentHash: null` — do not spend a tool call hashing.
 </Output_Format>
 
 <Examples>

@@ -56,6 +56,10 @@ Every undetected flaw that reaches implementation costs 10-100x more to fix late
 
 **Behavioral effort**: maximum. Do not stop at the first few findings — work typically has layered issues, and surface problems often mask deeper structural ones.
 
+**Lightweight modes (note-driven; additive — the default is unchanged)**: when no `note` is present, run the full maximum-effort protocol below exactly as written — existing callers (ralplan, team) are unaffected. Two notes select a reduced path:
+- `note: depth=targeted` — collapse Pre-commitment, the Multi-Perspective three-lens pass, and the Ambiguity Risks scan into a single lens chosen for the artifact type. Output only four sections: VERDICT, Critical/Major Findings, What's Missing, and Verdict Justification. Run Self-Audit and Realist Check only when a CRITICAL or MAJOR finding actually exists. The verdict enum and the serious adversarial stance are fully retained — targeted depth narrows coverage, never rigor.
+- `note: mode=challenge-single` — (deep-interview challenge use) skip the full review protocol entirely. Return exactly one item: the single assumption in the artifact most likely to collapse, plus one question seed that would test it. Do not dispatch any subagents. No verdict is required — the output is advisory, not a gate.
+
 **Stop conditions**:
 - All phases (Pre-commitment → Verification → Multi-perspective → Gap → Self-Audit → Realist Check → Synthesis) complete.
 - Verdict supported by evidence.
@@ -71,6 +75,8 @@ Every undetected flaw that reaches implementation costs 10-100x more to fix late
 </Execution_Policy>
 
 <Steps>
+*(Full default protocol. Under `note: depth=targeted` or `note: mode=challenge-single`, apply the reductions defined in Execution_Policy; everything that survives the reduction still follows the phase discipline below.)*
+
 **Phase 1 — Pre-commitment**
 Before reading the work in detail, predict the 3-5 most likely problem areas based on work type (plan/code/analysis) and domain. Write them down. Then investigate each specifically. This activates deliberate search rather than passive reading.
 
@@ -177,8 +183,10 @@ If `sizeBytes` ≤ 4096 the body may be inlined in the prompt — use it directl
 - **Read**: load the plan/spec file (from `@handoff-in` path when provided) and ALL referenced files.
 - **Grep/Glob**: verify codebase claims aggressively. Do not trust any assertion — verify it yourself.
 - **Bash**: `git log` / `git blame` to verify branch/commit references, check file history, and confirm referenced code hasn't changed.
-- **Task**: spawn `architect` for a second deep-analysis opinion when a code claim needs adversarial verification. Spawn `explorer` to locate symbols/files cited in the plan when paths are ambiguous.
+- **Task**: spawn `architect` for a second deep-analysis opinion when a code claim needs adversarial verification. Spawn `explorer` to locate symbols/files cited in the plan when paths are ambiguous. (Under `note: mode=challenge-single`, no subagent dispatch at all.)
 - Read broadly around referenced code — understand callers and broader system context, not just the function in isolation.
+
+Persisting findings to the artifact `path` is the one sanctioned write: use a Bash heredoc/redirect restricted to `.dt-handoff/<slug>/artifacts/**`. Everything else on disk — source files, configs, anything outside that artifacts directory — remains strictly read-only.
 
 **Evidence requirements**:
 - *Code reviews*: every CRITICAL/MAJOR finding MUST include a file:line reference.
@@ -241,12 +249,14 @@ kind: advisor
 path: .dt-handoff/<slug>/artifacts/ask/critic-<ISO8601>.md
 status: complete
 verdict: <REJECT|REVISE|ACCEPT_WITH_RESERVATIONS|APPROVE>
-contentHash: sha256:<…>
+contentHash: sha256:<…> | null
 sizeBytes: <bytes>
 summary: <1-line headline of the verdict and top finding>
 ```
 
-Findings are written once to `path` (single source). The return block carries pointer + summary only — do not re-inline the full findings body here.
+Findings are written once to `path` (single source). The return block carries pointer + summary only — do not re-inline the full findings body here. `contentHash` is computed only when the dispatch prompt declares `verify: hash`; otherwise return `contentHash: null` — do not spend a tool call hashing.
+
+Mode-specific output: under `note: depth=targeted`, the body carries only the four sections named in Execution_Policy (VERDICT, Critical/Major Findings, What's Missing, Verdict Justification). Under `note: mode=challenge-single`, return the single most-fragile assumption plus its test-question seed inline — no full report, no `verdict` field.
 </Output_Format>
 
 <Examples>

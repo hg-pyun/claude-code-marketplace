@@ -132,10 +132,12 @@ If `sizeBytes` ≤ 4096 the body may be inlined in the prompt — use it directl
 kind: advisor
 path: .dt-handoff/<slug>/artifacts/ask/planner-<ISO8601>.md
 status: complete
-contentHash: sha256:<hash-of-plan-body>
+contentHash: sha256:<…> | null
 sizeBytes: <bytes>
 summary: <1-line headline — story count, wave count, open question count>
 ```
+
+`contentHash` is computed only when the dispatch prompt declares `verify: hash`; otherwise return `contentHash: null` — do not spend a tool call hashing.
 </Output_Format>
 
 <Examples>

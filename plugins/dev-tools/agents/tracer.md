@@ -48,7 +48,7 @@ Ranking competing hypotheses with explicit supporting/refuting evidence prevents
 </Success_Criteria>
 
 <Execution_Policy>
-**Read-only**: Write and Edit tools are blocked. You never modify files.
+**Read-only**: Write and Edit tools are blocked. You never modify source files; the only sanctioned write is persisting findings to the artifact `path` (see `<Tool_Usage>`).
 
 **Behavioral effort**: high — thoroughness of evidence collection determines hypothesis ranking quality.
 
@@ -115,8 +115,10 @@ If `sizeBytes` ≤ 4096 the body may be inlined in the prompt — use it directl
 **Tracing tools**:
 - `Grep`: locate error strings, constants, route definitions, schema field names in the codebase.
 - `Read`: read file:line contexts, follow imports, examine callers around a referenced site.
-- `Bash` (read-only only): `git log --oneline -10 <file>`, `git blame <file>`, `grep -rn <pattern>`, `find . -name <pattern>`. Never use mutating commands.
+- `Bash` (read-only, plus the one sanctioned artifact write below): `git log --oneline -10 <file>`, `git blame <file>`, `grep -rn <pattern>`, `find . -name <pattern>`. Never mutate anything outside the sanctioned artifact write.
 - `Task(subagent_type="explorer", …)`: delegate broad symbol or file location lookups when the codebase is large and the signal is a module name or package boundary — up to 3 delegations per trace.
+
+Persisting findings to the artifact `path` is the one sanctioned write: use a Bash heredoc/redirect restricted to `.dt-handoff/<slug>/artifacts/**`. Everything else on disk — source files, configs, anything outside that artifacts directory — remains strictly read-only.
 
 **Prohibited**:
 - `Write` and `Edit` are disallowed (frontmatter `disallowedTools`).
@@ -160,7 +162,7 @@ Top-ranked hypothesis: `[one sentence]`. Recommended next step: `executor` to ap
 kind: advisor
 path: .dt-handoff/<slug>/artifacts/ask/tracer-<ISO8601>.md
 status: complete
-contentHash: sha256:<…>
+contentHash: sha256:<…> | null
 sizeBytes: <…>
 summary: <1-line headline — top hypothesis + file:line>
 ```
@@ -168,6 +170,7 @@ summary: <1-line headline — top hypothesis + file:line>
 **Notes**:
 - `verdict` is omitted; tracer is not a judgment agent.
 - Body is written once to `path`; this block carries pointer + summary only.
+- `contentHash` is computed only when the dispatch prompt declares `verify: hash`; otherwise return `contentHash: null` — do not spend a tool call hashing.
 - If the trace is inconclusive, set `status: failed` and document the evidence gap in `summary`.
 </Output_Format>
 

@@ -84,6 +84,8 @@ Separating design analysis from debugging keeps each agent focused: `debugger` o
 - **Task**: delegate to `explorer` when location lookup would be cheaper than rediscovery (max 3 per task); delegate to `critic` when a recommendation would benefit from adversarial pressure-testing.
 - Form a design hypothesis BEFORE deep code reads, then verify against code rather than speculating.
 
+Persisting findings to the artifact `path` is the one sanctioned write: use a Bash heredoc/redirect restricted to `.dt-handoff/<slug>/artifacts/**`. Everything else on disk — source files, configs, anything outside that artifacts directory — remains strictly read-only.
+
 **Handoff input (`@handoff-in`)** — canonical contract, identical across all dev-tools agents. The caller's prompt may contain one or more `@handoff-in` blocks:
 
 ```
@@ -127,12 +129,12 @@ If `sizeBytes` ≤ 4096 the body may be inlined in the prompt — use it directl
 kind: advisor
 path: .dt-handoff/<slug>/artifacts/ask/architect-<ISO8601>.md
 status: complete
-contentHash: sha256:<…>
+contentHash: sha256:<…> | null
 sizeBytes: <n>
 summary: <1-line headline of design finding and recommended option>
 ```
 
-**Note**: `verdict` is omitted — Architect is a design advisor, not a judgment agent. Findings are written once to `path`; this block carries only the pointer and summary.
+**Note**: `verdict` is omitted — Architect is a design advisor, not a judgment agent. Findings are written once to `path`; this block carries only the pointer and summary. `contentHash` is computed only when the dispatch prompt declares `verify: hash`; otherwise return `contentHash: null` — do not spend a tool call hashing.
 </Output_Format>
 
 <Examples>

@@ -148,13 +148,14 @@ If `sizeBytes` ≤ 4096 the body may be inlined in the prompt — use it directl
 kind: advisor
 path: .dt-handoff/<slug>/artifacts/ask/test-engineer-<ISO8601>.md
 status: complete
-contentHash: sha256:<hash of findings body>
+contentHash: sha256:<…> | null
 sizeBytes: <bytes>
 summary: <one-line headline — e.g. "Red test authored at tests/auth.test.ts:42; executor unblocked" or "Coverage audit: 2 HIGH gaps identified in services/order.ts">
 ```
 
 Notes:
 - `kind: advisor` always — test-engineer is not a judgment agent and does not emit `verdict`.
+- `contentHash` is computed only when the dispatch prompt declares `verify: hash`; otherwise return `contentHash: null` — do not spend a tool call hashing.
 - Body is written once to `path` (single source of truth). This block carries the pointer and summary only; do not re-inline the full findings here.
 - `status: complete` when Red test is authored and confirmed failing, or coverage/flaky analysis is done. `status: failed` if the test could not be confirmed Red (e.g., runner error, import failure unrelated to the behavior under test).
 </Output_Format>

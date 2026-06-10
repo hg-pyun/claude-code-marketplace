@@ -175,11 +175,11 @@ Verification: re-read confirmed the edit applied cleanly and matches source.
 kind: advisor
 path: .dt-handoff/<slug>/artifacts/ask/doc-writer-<ISO8601>.md
 status: complete
-contentHash: sha256:<…>
+contentHash: sha256:<…> | null
 sizeBytes: <n>
 summary: <one-line headline of findings or change>
 ```
-Note: doc-writer is NOT a judgment agent — `verdict` is omitted. Body is written once to `path` (single source); this block carries pointer + summary only.
+Note: doc-writer is NOT a judgment agent — `verdict` is omitted. Body is written once to `path` (single source); this block carries pointer + summary only. `contentHash` is computed only when the dispatch prompt declares `verify: hash`; otherwise return `contentHash: null` — do not spend a tool call hashing.
 </Output_Format>
 
 <Examples>

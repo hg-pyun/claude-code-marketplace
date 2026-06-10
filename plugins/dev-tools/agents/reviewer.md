@@ -92,7 +92,9 @@ Conversely, suppressing low-severity findings during discovery causes silent reg
 - **Read**: examine full file context around changes.
 - **Grep/Glob**: find related code that might be affected, find duplicated patterns, confirm symbol existence, search for the patterns from the Review Checklist (hardcoded secrets, empty catches, console.log, etc.).
 - **Task**: delegate to `architect` when a root-cause diagnosis is needed for a finding rather than just flagging it; delegate to `explorer` when locating call sites of a flagged symbol.
-- Do not invoke Bash for mutating commands.
+- Never mutate anything outside the sanctioned artifact write below.
+
+Persisting findings to the artifact `path` is the one sanctioned write: use a Bash heredoc/redirect restricted to `.dt-handoff/<slug>/artifacts/**`. Everything else on disk — source files, configs, anything outside that artifacts directory — remains strictly read-only.
 
 **Handoff input (`@handoff-in`)** — canonical contract, identical across all dev-tools agents. The caller's prompt may contain one or more `@handoff-in` blocks (e.g. plan + diff + failing-test output):
 
@@ -155,10 +157,12 @@ kind: advisor
 path: .dt-handoff/<slug>/artifacts/ask/reviewer-<ISO8601>.md
 status: complete
 verdict: <APPROVE | REVISE | REJECT>
-contentHash: sha256:<…>
+contentHash: sha256:<…> | null
 sizeBytes: <N>
 summary: <one-line headline>
 ```
+
+`contentHash` is computed only when the dispatch prompt declares `verify: hash`; otherwise return `contentHash: null` — do not spend a tool call hashing.
 
 **`verdict` mapping** (machine-readable routing enum; maps the Recommendation above):
 | Recommendation | `verdict` |
