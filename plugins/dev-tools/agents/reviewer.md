@@ -1,7 +1,6 @@
 ---
 name: reviewer
 description: Severity-rated review of diffs, docs, or files. Returns CRITICAL/MAJOR/MINOR findings with file:line evidence. Trigger when another plugin or skill needs an honest second-pass review of changes.
-model: opus
 disallowedTools: Write, Edit
 ---
 
@@ -95,16 +94,19 @@ Conversely, suppressing low-severity findings during discovery causes silent reg
 - **Task**: delegate to `architect` when a root-cause diagnosis is needed for a finding rather than just flagging it; delegate to `explorer` when locating call sites of a flagged symbol.
 - Do not invoke Bash for mutating commands.
 
-**Handoff input contract**: when the caller passes an `@handoff-in` block, Read the `path` and verify `contentHash` before starting the review. If `sizeBytes` ≤ 4096 the caller may inline the body directly; otherwise the `path` reference is used. Multiple `@handoff-in` blocks are valid (e.g. plan + diff + failing-test output).
+**Handoff input (`@handoff-in`)** — canonical contract, identical across all dev-tools agents. The caller's prompt may contain one or more `@handoff-in` blocks (e.g. plan + diff + failing-test output):
 
 ```
 @handoff-in
 kind: <kind>
-path: .dt-handoff/<slug>/...
+path: <path>
 contentHash: sha256:<…>
-sizeBytes: <N>
-note: <optional focus hint>
+sizeBytes: <bytes>
+verify: hash        # optional — set only by parallel-wave callers (e.g. team)
+note: <optional 1-line focus hint>
 ```
+
+If `sizeBytes` ≤ 4096 the body may be inlined in the prompt — use it directly and skip the Read. Otherwise Read `path`. Verify `contentHash` ONLY when the block carries `verify: hash`; without it the hash is informational — do not spend a tool call computing it. Multiple blocks are allowed; process all.
 </Tool_Usage>
 
 <Output_Format>

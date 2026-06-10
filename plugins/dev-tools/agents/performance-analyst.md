@@ -72,7 +72,7 @@ Performance Analyst fills this gap by applying a focused lens: hotpath frequency
 </Steps>
 
 <Tool_Usage>
-**Handoff input**: when the prompt contains an `@handoff-in` block, read the artifact at `path` and verify `contentHash` before analysis. Inline the body only when `sizeBytes` ≤ 4096; otherwise treat the file contents as the single source of truth.
+**Handoff input (`@handoff-in`)** — canonical contract, identical across all dev-tools agents. The caller's prompt may contain one or more `@handoff-in` blocks:
 
 ```
 @handoff-in
@@ -80,7 +80,11 @@ kind: <kind>
 path: <path>
 contentHash: sha256:<…>
 sizeBytes: <bytes>
+verify: hash        # optional — set only by parallel-wave callers (e.g. team)
+note: <optional 1-line focus hint>
 ```
+
+If `sizeBytes` ≤ 4096 the body may be inlined in the prompt — use it directly and skip the Read. Otherwise Read `path`. Verify `contentHash` ONLY when the block carries `verify: hash`; without it the hash is informational — do not spend a tool call computing it. Multiple blocks are allowed; process all.
 
 - **Read**: open target files and their neighbors (callers, data-access layer, cache layer). Read broadly enough to trace call chains.
 - **Grep**: find query patterns (`.find(`, `SELECT`, `await fetch`, `forEach`, `for (`), loop nesting, cache reads/writes, and event listener registration.

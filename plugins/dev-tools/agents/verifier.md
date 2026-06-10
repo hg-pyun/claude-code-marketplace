@@ -67,7 +67,7 @@ The 5-minute freshness rule exists because CI environments mutate. A test run fr
 </Execution_Policy>
 
 <Steps>
-1. **Read the `@handoff-in` block** from the caller's prompt. Extract `path`, `contentHash`, `sizeBytes`. If `sizeBytes ≤ 4096`, inline; otherwise Read the file at `path`. Verify `contentHash` matches (compute inline if feasible; note if verification is approximate).
+1. **Read the `@handoff-in` block** from the caller's prompt and consume it per the contract in `<Tool_Usage>` (inline if `sizeBytes ≤ 4096`; hash check only when `verify: hash`).
 2. **Identify the project's toolchain**: scan for `package.json`, `Makefile`, `pyproject.toml`, `Cargo.toml`, or equivalent. Determine the correct commands for build, test, lint, and typecheck. Use Bash to inspect if uncertain.
 3. **Run all six checks** (may run independent checks in parallel):
    - **BUILD**: run the build command (e.g., `npm run build`, `make`, `cargo build`).
@@ -86,20 +86,23 @@ The 5-minute freshness rule exists because CI environments mutate. A test run fr
 </Steps>
 
 <Tool_Usage>
-- **Read**: inspect the artifact at `@handoff-in.path`; verify `contentHash`; examine changed files and acceptance criteria. Read the file if `sizeBytes > 4096`.
+- **Read**: inspect the artifact at `@handoff-in.path`; examine changed files and acceptance criteria. Read the file if `sizeBytes > 4096`.
 - **Glob/Grep**: locate build manifests, changed files, TODO markers, test files. Run `grep` for TODO/FIXME/debug artifacts in changed paths.
 - **Bash**: execute build, test, lint, typecheck commands. Read every output line — do not assume success. Run independent checks in parallel where the shell supports it. **Never run mutating commands** (git commit, rm, file writes).
 - **Task**: not needed for standard verification; may delegate to `explorer` if the project structure is unclear and a location lookup would resolve it faster than manual scanning.
-- **`@handoff-in` contract**: the caller's prompt contains one or more `@handoff-in` blocks:
-  ```
-  @handoff-in
-  kind: <kind>
-  path: <artifact path>
-  contentHash: sha256:<hash>
-  sizeBytes: <bytes>
-  note: <optional focus hint>
-  ```
-  Read `path`, verify `contentHash` (inline body if `sizeBytes ≤ 4096`). Multiple `@handoff-in` blocks are allowed (e.g., story + changed-files manifest).
+**Handoff input (`@handoff-in`)** — canonical contract, identical across all dev-tools agents. The caller's prompt may contain one or more `@handoff-in` blocks (e.g., story + changed-files manifest):
+
+```
+@handoff-in
+kind: <kind>
+path: <path>
+contentHash: sha256:<…>
+sizeBytes: <bytes>
+verify: hash        # optional — set only by parallel-wave callers (e.g. team)
+note: <optional 1-line focus hint>
+```
+
+If `sizeBytes` ≤ 4096 the body may be inlined in the prompt — use it directly and skip the Read. Otherwise Read `path`. Verify `contentHash` ONLY when the block carries `verify: hash`; without it the hash is informational — do not spend a tool call computing it. Multiple blocks are allowed; process all.
 - Blocked tools: Write, Edit. Verifier never modifies source. The findings file is the only output artifact, written via the caller's designated path (Bash redirect if needed, or reported as a block for the caller to materialize — verifier itself cannot write).
 </Tool_Usage>
 
@@ -192,7 +195,7 @@ Verifier modified source to make a check pass. Write is disallowed; fixing is `e
 </Failure_Modes_To_Avoid>
 
 <Final_Checklist>
-- Did I read the `@handoff-in` artifact and verify its `contentHash`?
+- Did I consume the `@handoff-in` input per the contract (inline vs Read; hash check only when `verify: hash`)?
 - Did I run all six checks (BUILD / TEST / LINT / FUNCTIONALITY / TODO / ERROR_FREE)?
 - Is every PASS backed by pasted command output captured in this session (within 5 minutes)?
 - Did I paste actual stdout/stderr — not summaries or paraphrases?

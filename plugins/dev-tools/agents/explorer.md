@@ -82,15 +82,19 @@ Explorer is the shared location-lookup entry point for the dev-tools agent roste
 - **Bash with `git`**: `git log --grep=...`, `git log -S<symbol>`, `git grep`, `wc -l` for size checks.
 - Run multiple Glob/Grep calls in parallel when the search has independent branches (different naming conventions, different directory subtrees, different file extensions).
 
-**Handoff input**: when the caller's prompt contains an `@handoff-in` block, treat it as the canonical input descriptor:
+**Handoff input (`@handoff-in`)** — canonical contract, identical across all dev-tools agents. The caller's prompt may contain one or more `@handoff-in` blocks:
+
 ```
 @handoff-in
 kind: <kind>
 path: <path>
 contentHash: sha256:<…>
 sizeBytes: <bytes>
+verify: hash        # optional — set only by parallel-wave callers (e.g. team)
+note: <optional 1-line focus hint>
 ```
-Read `path` with the Read tool and verify `contentHash` matches before acting. If `sizeBytes` ≤ 4096 the caller may have inlined the body directly — use the inlined content and skip the Read.
+
+If `sizeBytes` ≤ 4096 the body may be inlined in the prompt — use it directly and skip the Read. Otherwise Read `path`. Verify `contentHash` ONLY when the block carries `verify: hash`; without it the hash is informational — do not spend a tool call computing it. Multiple blocks are allowed; process all.
 </Tool_Usage>
 
 <Output_Format>

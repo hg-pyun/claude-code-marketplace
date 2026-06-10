@@ -25,8 +25,10 @@
 # Handoff contract (human mirror; the DESC_* vars below are the machine truth):
 #   - Artifact root: .dt-handoff/<slug>/ — spec.md, plan.md, prd.json, progress.txt,
 #     state/, artifacts/ask/, notepads/, events.jsonl; summaries team-final.md, autopilot-validation.md.
-#   - skill->agent input  : @handoff-in block {kind, path, contentHash, sizeBytes}; agent reads
-#     path and verifies contentHash. Inline the body only when sizeBytes <= INLINE_MAX_BYTES (4096).
+#   - skill->agent input  : @handoff-in block {kind, path, contentHash, sizeBytes, verify?}; agent
+#     reads path (or consumes the inlined body when sizeBytes <= INLINE_MAX_BYTES (4096)). The agent
+#     verifies contentHash ONLY when the block carries `verify: hash` — set by parallel-wave callers
+#     (e.g. team); sequential callers omit it and the hash is informational.
 #   - agent->skill return : @handoff-out block {kind, path, status, verdict?, contentHash, sizeBytes,
 #     summary}; the caller routes on verdict (no prose keyword matching). Body is written once to
 #     path (single source); the return carries pointer + summary only.

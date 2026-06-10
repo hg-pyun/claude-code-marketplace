@@ -88,14 +88,16 @@ When to pick what:
 
 Sixteen specialist agents organized in four lanes. Read-only advisors carry `disallowedTools: Write, Edit`; write-capable agents have no such constraint. Three agents return a machine-readable `verdict` field (`APPROVE` / `ACCEPT_WITH_RESERVATIONS` / `ITERATE` / `REVISE` / `REJECT`) in their `@handoff-out` block: `reviewer`, `critic`, and `verifier`.
 
+Model column: `inherit (session)` means no `model` pin in the agent frontmatter — the agent runs on the calling session's model, so judgment-heavy agents always track the best model the user has chosen. Explicit pins (`sonnet`, `haiku`) are deliberate cost downgrades for mechanical or high-volume roles.
+
 ### Build / Analysis lane
 
 | Agent | Model | Writes? | Role |
 |-------|-------|---------|------|
 | `explorer` | haiku | no | Fast file/symbol/pattern lookup with absolute paths and excerpts. |
-| `analyst` | opus | no | Requirement decomposition, hidden-constraint surfacing, and ambiguity scoring. |
-| `planner` | opus | no | Turns a spec or PRD into a sequenced, dependency-aware execution plan (story breakdown + DAG + acceptance criteria). |
-| `architect` | opus | no | System design and trade-off advisor; evaluates interface contracts and recommends structural changes with file:line evidence. Not for bug diagnosis or verification. |
+| `analyst` | inherit (session) | no | Requirement decomposition, hidden-constraint surfacing, and ambiguity scoring. |
+| `planner` | inherit (session) | no | Turns a spec or PRD into a sequenced, dependency-aware execution plan (story breakdown + DAG + acceptance criteria). |
+| `architect` | inherit (session) | no | System design and trade-off advisor; evaluates interface contracts and recommends structural changes with file:line evidence. Not for bug diagnosis or verification. |
 | `debugger` | sonnet | no | Root-cause analysis advisor; diagnoses build/test/runtime failures with a 4-phase RCA protocol and hands off a concrete hypothesis. |
 | `tracer` | sonnet | no | Evidence-driven causal tracing; reverse-traces an observed effect to responsible code and ranks competing hypotheses. |
 | `executor` | sonnet | yes | Focused code implementation. Small-correct-diff principle, TDD Iron Law enforcement. After 3 fails, escalates to `debugger` (root cause unclear) or `architect` (design wrong). |
@@ -105,8 +107,8 @@ Sixteen specialist agents organized in four lanes. Read-only advisors carry `dis
 
 | Agent | Model | Writes? | Role |
 |-------|-------|---------|------|
-| `reviewer` | opus | no | Severity-rated review (CRITICAL/MAJOR/MINOR) of diffs and files; returns machine-readable `verdict`. |
-| `security-auditor` | opus | no | AuthN/AuthZ, secrets, crypto, injection, SAST, and config findings with severity + confidence ratings. |
+| `reviewer` | inherit (session) | no | Severity-rated review (CRITICAL/MAJOR/MINOR) of diffs and files; returns machine-readable `verdict`. |
+| `security-auditor` | inherit (session) | no | AuthN/AuthZ, secrets, crypto, injection, SAST, and config findings with severity + confidence ratings. |
 | `performance-analyst` | sonnet | no | Hotpath, complexity, IO/Memory/Cache findings with severity ratings. |
 
 ### Domain lane
@@ -116,13 +118,13 @@ Sixteen specialist agents organized in four lanes. Read-only advisors carry `dis
 | `test-engineer` | sonnet | tests only | Red-step authoring, coverage gap analysis, flaky-test diagnosis. TDD Iron Law enforcement. |
 | `doc-writer` | sonnet | dual-mode | Doc gap/staleness/consistency analysis in advisor mode; authors directly in autonomous mode. |
 | `git-master` | sonnet | yes (git ops only) | Encapsulates git mechanics (status, diff, staging, commit construction, rebase, push) for the git/GitHub skills. Never mutates on its own initiative — only when a user-triggered skill directs it. |
-| `code-simplifier` | opus | yes | Behavior-preserving simplification of a bounded changed-file set; re-verifies via `verifier` after cleanup. Used by `ralph` (Step 7.5) and `team` cleanup passes. |
+| `code-simplifier` | sonnet | yes | Behavior-preserving simplification of a bounded changed-file set; re-verifies via `verifier` after cleanup. Used by `ralph` (Step 7.5) and `team` cleanup passes. |
 
 ### Coordination lane
 
 | Agent | Model | Writes? | Role |
 |-------|-------|---------|------|
-| `critic` | opus | no | Adversarial plan critique with explicit verdict (`REJECT` / `REVISE` / `ACCEPT_WITH_RESERVATIONS` / `APPROVE`). |
+| `critic` | inherit (session) | no | Adversarial plan critique with explicit verdict (`REJECT` / `REVISE` / `ACCEPT_WITH_RESERVATIONS` / `APPROVE`). |
 
 Invoke via the Task tool — no plugin prefix:
 

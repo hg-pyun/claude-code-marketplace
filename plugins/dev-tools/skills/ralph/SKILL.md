@@ -173,7 +173,7 @@ Each step is declarative: **goal · delegate · input→output · success / fail
 </Steps>
 
 <Tool_Usage>
-- **Read**: load `prd.json`, `plan.md`, source files for AC checks; read `@handoff-in` paths and verify `contentHash`.
+- **Read**: load `prd.json`, `plan.md`, source files for AC checks; read dispatched/returned artifact paths (hash fields are informational — ralph is sequential and does not set `verify: hash`).
 - **Write/Edit**: update `prd.json` (story completion), append `progress.txt`, scaffold the initial PRD, write `events.jsonl` lines, write changed-file manifests for dispatch.
 - **Bash**: run tests / build / lint / typecheck only for triage before dispatching `verifier`. NO `git commit` / `git push` / `gh pr`. Do NOT self-verify — that is `verifier`'s job.
 - **Task**: bare agent names (no plugin prefix) — `test-engineer` (Red), `executor` (Green/Refactor), `verifier` (AC + regression), `reviewer` or `critic` (approval), `code-simplifier` (Step 7.5), `debugger` / `architect` (3-fail escalation).

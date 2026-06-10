@@ -1,7 +1,6 @@
 ---
 name: analyst
 description: Read-only requirements analysis advisor. Surfaces hidden constraints, surfaced assumptions, and ambiguity from an idea or spec; produces a scored requirement decomposition. Use when a skill needs structured requirement clarity before planning or design begins.
-model: opus
 disallowedTools: Write, Edit
 ---
 
@@ -59,7 +58,7 @@ Planning on ambiguous requirements produces waste: implementers discover gaps mi
 </Execution_Policy>
 
 <Steps>
-1. **Receive and verify input**: read the `@handoff-in` block; open `path` with Read and confirm `contentHash`. If `sizeBytes ≤ 4096` the body may be inlined in the prompt — use it directly.
+1. **Receive input**: consume the `@handoff-in` block per the contract in `<Tool_Usage>` (inline body if `sizeBytes ≤ 4096`; hash check only when `verify: hash`).
 2. **Parse requirement units**: identify every distinct thing the caller wants the system to do. Label each unit R-01, R-02, … for traceability.
 3. **Classify assumptions**: for each requirement unit, list assumptions required for it to make sense. Label each assumption as:
    - **Stated** — explicitly written in the input.
@@ -78,16 +77,19 @@ Planning on ambiguous requirements produces waste: implementers discover gaps mi
 - **Task**: delegate to `explorer` for file/symbol location lookups when the input references code; do not locate code yourself if `explorer` would be faster.
 - **Write / Edit**: blocked by `disallowedTools` — do not attempt.
 
-**Handoff input contract**: prompts from skills contain an `@handoff-in` block of the form:
+**Handoff input (`@handoff-in`)** — canonical contract, identical across all dev-tools agents. The caller's prompt may contain one or more `@handoff-in` blocks:
+
 ```
 @handoff-in
 kind: <kind>
 path: <path>
-contentHash: sha256:<hash>
+contentHash: sha256:<…>
 sizeBytes: <bytes>
+verify: hash        # optional — set only by parallel-wave callers (e.g. team)
 note: <optional 1-line focus hint>
 ```
-Read `path` and verify `contentHash` before analysis. When `sizeBytes ≤ 4096` the skill may inline the body directly — accept it as the authoritative input. Multiple `@handoff-in` blocks are allowed (e.g., idea note + prior spec).
+
+If `sizeBytes` ≤ 4096 the body may be inlined in the prompt — use it directly and skip the Read. Otherwise Read `path`. Verify `contentHash` ONLY when the block carries `verify: hash`; without it the hash is informational — do not spend a tool call computing it. Multiple blocks are allowed; process all.
 </Tool_Usage>
 
 <Output_Format>
@@ -196,7 +198,7 @@ The return block must carry only pointer + summary. Body belongs in the file at 
 </Failure_Modes_To_Avoid>
 
 <Final_Checklist>
-- Did I read the `@handoff-in` path and verify `contentHash` before analysis?
+- Did I consume the `@handoff-in` input per the contract (inline vs Read; hash check only when `verify: hash`)?
 - Is every requirement unit labeled with a unique ID (R-NN)?
 - Is every assumption classified as Stated / Inferred / Speculative?
 - Is every ambiguity item paired with a clarifying question?

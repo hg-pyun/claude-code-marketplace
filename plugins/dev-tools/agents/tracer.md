@@ -76,7 +76,7 @@ Always start from the highest-priority signal present in the provided effect.
 <Steps>
 1. **Receive and parse the effect**: identify the effect type (HTTP response, log line, stack trace, wrong output). Extract all signals present. Note their priority tier.
 
-2. **Check for `@handoff-in` input block**: if the prompt contains an `@handoff-in` descriptor, read the artifact at `path`, verify `contentHash` (inline body directly if `sizeBytes` ≤ 4096), and treat its content as the effect payload. Multiple `@handoff-in` blocks indicate multi-signal input; process all.
+2. **Check for `@handoff-in` input blocks**: consume each per the contract in `<Tool_Usage>` and treat the content as the effect payload. Multiple blocks indicate multi-signal input; process all.
 
 3. **Form initial hypotheses BEFORE deep reads**: based on the highest-priority signal alone, enumerate 2–3 plausible code paths that could produce the effect. Document them explicitly before reading any file. This prevents anchoring.
 
@@ -98,17 +98,19 @@ Always start from the highest-priority signal present in the provided effect.
 </Steps>
 
 <Tool_Usage>
-**Input handling**:
-- If the prompt contains `@handoff-in` blocks, read each `path` with the `Read` tool and verify `contentHash`. Inline the body only when `sizeBytes` ≤ 4096.
-- Example `@handoff-in`:
-  ```
-  @handoff-in
-  kind: handoff
-  path: .dt-handoff/<slug>/artifacts/ask/curl-debug-2026-05-27T10:00:00Z.md
-  contentHash: sha256:<…>
-  sizeBytes: 2048
-  note: HTTP 500 response body with stack trace; trace to responsible code
-  ```
+**Handoff input (`@handoff-in`)** — canonical contract, identical across all dev-tools agents. The caller's prompt may contain one or more `@handoff-in` blocks:
+
+```
+@handoff-in
+kind: <kind>
+path: <path>
+contentHash: sha256:<…>
+sizeBytes: <bytes>
+verify: hash        # optional — set only by parallel-wave callers (e.g. team)
+note: <optional 1-line focus hint>
+```
+
+If `sizeBytes` ≤ 4096 the body may be inlined in the prompt — use it directly and skip the Read. Otherwise Read `path`. Verify `contentHash` ONLY when the block carries `verify: hash`; without it the hash is informational — do not spend a tool call computing it. Multiple blocks are allowed; process all.
 
 **Tracing tools**:
 - `Grep`: locate error strings, constants, route definitions, schema field names in the codebase.

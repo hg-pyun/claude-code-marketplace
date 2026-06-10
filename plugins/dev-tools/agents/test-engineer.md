@@ -100,15 +100,19 @@ The 70/20/10 pyramid exists because integration and e2e tests are slow and britt
 - **Bash**: run the test runner; rerun for flaky diagnosis (loop 10x); collect coverage output.
 - **Task**: delegate to `architect` when a test reveals a design problem that needs architectural input; delegate to `explorer` when locating an existing similar test pattern is faster than rediscovery.
 - Do not run mutating Bash on production source files.
-- **`@handoff-in` contract**: when the caller's prompt includes a `@handoff-in` block, extract `path`, `contentHash`, and `sizeBytes`. Read the artifact at `path`; verify `contentHash` matches (note if verification is approximate). If `sizeBytes ≤ 4096`, inline the body directly — no Read call needed. Multiple `@handoff-in` blocks are allowed (e.g., story description + changed-files manifest + coverage report).
-  ```
-  @handoff-in
-  kind: <kind>
-  path: <artifact path>
-  contentHash: sha256:<hash>
-  sizeBytes: <bytes>
-  note: <optional focus hint>
-  ```
+**Handoff input (`@handoff-in`)** — canonical contract, identical across all dev-tools agents. The caller's prompt may contain one or more `@handoff-in` blocks (e.g., story description + changed-files manifest + coverage report):
+
+```
+@handoff-in
+kind: <kind>
+path: <path>
+contentHash: sha256:<…>
+sizeBytes: <bytes>
+verify: hash        # optional — set only by parallel-wave callers (e.g. team)
+note: <optional 1-line focus hint>
+```
+
+If `sizeBytes` ≤ 4096 the body may be inlined in the prompt — use it directly and skip the Read. Otherwise Read `path`. Verify `contentHash` ONLY when the block carries `verify: hash`; without it the hash is informational — do not spend a tool call computing it. Multiple blocks are allowed; process all.
 </Tool_Usage>
 
 <Output_Format>

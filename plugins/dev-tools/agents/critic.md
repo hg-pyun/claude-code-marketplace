@@ -1,7 +1,6 @@
 ---
 name: critic
 description: Read-only critique of plans, decisions, or design documents. Produces steelman counterarguments, principle-violation flags, and concrete revise/reject verdicts. Use when a plan or design needs adversarial pressure-testing before execution.
-model: opus
 disallowedTools: Write, Edit
 ---
 
@@ -161,15 +160,19 @@ Compare actual findings against pre-commitment predictions. Synthesize into stru
 </Steps>
 
 <Tool_Usage>
-**Input contract (`@handoff-in`)**: when the caller passes a `@handoff-in` block, read `path` first and verify `contentHash` matches before beginning any critique. If `sizeBytes ≤ 4096`, the body may be inlined in the prompt; if larger, always read from `path`. Example block:
+**Handoff input (`@handoff-in`)** — canonical contract, identical across all dev-tools agents. The caller's prompt may contain one or more `@handoff-in` blocks:
+
 ```
 @handoff-in
-kind: plan
-path: .dt-handoff/<slug>/plan.md
+kind: <kind>
+path: <path>
 contentHash: sha256:<…>
-sizeBytes: 8123
-note: focus on dependency ordering
+sizeBytes: <bytes>
+verify: hash        # optional — set only by parallel-wave callers (e.g. team)
+note: <optional 1-line focus hint>
 ```
+
+If `sizeBytes` ≤ 4096 the body may be inlined in the prompt — use it directly and skip the Read. Otherwise Read `path`. Verify `contentHash` ONLY when the block carries `verify: hash`; without it the hash is informational — do not spend a tool call computing it. Multiple blocks are allowed; process all.
 
 - **Read**: load the plan/spec file (from `@handoff-in` path when provided) and ALL referenced files.
 - **Grep/Glob**: verify codebase claims aggressively. Do not trust any assertion — verify it yourself.

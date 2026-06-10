@@ -101,8 +101,21 @@ The TDD Iron Law refusal exists because production code without a failing test e
 - **Bash**: run tests, typecheck, lint, build. Read the output — do not assume success.
 - **Task**: delegate to `explorer` for location lookups (max 3 per task); on 3-failure escalation delegate to `architect` (design wrong) or `debugger` (root cause unclear); delegate to `test-engineer` when the TDD precondition is missing; delegate gratuitous cleanup/simplification to `code-simplifier`.
 - **TodoWrite**: track atomic implementation steps for multi-step tasks.
-- **Handoff input**: if the caller's prompt includes an `@handoff-in` block (`{kind, path, contentHash, sizeBytes}`), Read the `path` and verify `contentHash` before starting. When `sizeBytes` ≤ 4096 the body may be inlined; otherwise always read from `path`.
 - Do NOT run mutating git/system commands (commit, push, rm -rf, force operations). Implementation output is changes-on-disk only.
+
+**Handoff input (`@handoff-in`)** — canonical contract, identical across all dev-tools agents. The caller's prompt may contain one or more `@handoff-in` blocks:
+
+```
+@handoff-in
+kind: <kind>
+path: <path>
+contentHash: sha256:<…>
+sizeBytes: <bytes>
+verify: hash        # optional — set only by parallel-wave callers (e.g. team)
+note: <optional 1-line focus hint>
+```
+
+If `sizeBytes` ≤ 4096 the body may be inlined in the prompt — use it directly and skip the Read. Otherwise Read `path`. Verify `contentHash` ONLY when the block carries `verify: hash`; without it the hash is informational — do not spend a tool call computing it. Multiple blocks are allowed; process all.
 </Tool_Usage>
 
 <Output_Format>

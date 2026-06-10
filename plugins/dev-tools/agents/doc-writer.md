@@ -99,14 +99,19 @@ Dual-mode operation exists because the same analytical capability serves two wor
 </Steps>
 
 <Tool_Usage>
-**Handoff input**: when a caller passes an `@handoff-in` block, read the `path` and verify `contentHash` before working. If `sizeBytes ≤ 4096` the body may be inlined directly; otherwise read from `path` on disk.
+**Handoff input (`@handoff-in`)** — canonical contract, identical across all dev-tools agents. The caller's prompt may contain one or more `@handoff-in` blocks:
+
 ```
 @handoff-in
 kind: <kind>
-path: .dt-handoff/<slug>/…
+path: <path>
 contentHash: sha256:<…>
-sizeBytes: <n>
+sizeBytes: <bytes>
+verify: hash        # optional — set only by parallel-wave callers (e.g. team)
+note: <optional 1-line focus hint>
 ```
+
+If `sizeBytes` ≤ 4096 the body may be inlined in the prompt — use it directly and skip the Read. Otherwise Read `path`. Verify `contentHash` ONLY when the block carries `verify: hash`; without it the hash is informational — do not spend a tool call computing it. Multiple blocks are allowed; process all.
 
 **External reference lookup**: when writing or reviewing docs that reference an SDK, API, or framework, consult repo-local documentation first (README, SKILL.md, inline code comments). Fall back to external sources (WebFetch / WebSearch) only when local docs are absent or insufficient to ground a claim. Cite the source in the finding or the authored text.
 

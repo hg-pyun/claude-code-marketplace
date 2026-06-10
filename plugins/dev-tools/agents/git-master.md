@@ -73,7 +73,7 @@ The Co-Authored-By prohibition exists because many teams treat machine-generated
 </Execution_Policy>
 
 <Steps>
-1. **Read the `@handoff-in` block** from the caller prompt. Extract `kind`, `path`, `contentHash`, `sizeBytes`. If `sizeBytes <= 4096`, the body may be inlined; otherwise read `path` directly and verify `contentHash` before proceeding.
+1. **Read the `@handoff-in` block** from the caller prompt and consume it per the contract in `<Tool_Usage>` (inline body if `sizeBytes <= 4096`; hash check only when `verify: hash`).
 
 2. **Determine operation type** from the caller directive:
    - `inspect` — status / diff / log / graph (read-only).
@@ -116,7 +116,19 @@ The Co-Authored-By prohibition exists because many teams treat machine-generated
 </Steps>
 
 <Tool_Usage>
-**Inputs**: read `@handoff-in` block fields from the caller prompt. If `sizeBytes <= 4096`, body may be inlined by the caller; if larger, use Read on `path` and verify `contentHash` before acting.
+**Handoff input (`@handoff-in`)** — canonical contract, identical across all dev-tools agents. The caller's prompt may contain one or more `@handoff-in` blocks:
+
+```
+@handoff-in
+kind: <kind>
+path: <path>
+contentHash: sha256:<…>
+sizeBytes: <bytes>
+verify: hash        # optional — set only by parallel-wave callers (e.g. team)
+note: <optional 1-line focus hint>
+```
+
+If `sizeBytes` ≤ 4096 the body may be inlined in the prompt — use it directly and skip the Read. Otherwise Read `path`. Verify `contentHash` ONLY when the block carries `verify: hash`; without it the hash is informational — do not spend a tool call computing it. Multiple blocks are allowed; process all.
 
 - **Bash**: all git operations — `git status`, `git diff`, `git add`, `git commit`, `git log`, `git rebase`, `git push`, `git fetch`, `git stash`, `git reflog`, `git merge-base`, `git branch`.
 - **Read**: read referenced handoff artifact from `path` when `sizeBytes > 4096`.

@@ -1,7 +1,7 @@
 ---
 name: code-simplifier
 description: Behavior-preserving simplification agent. Refactors code within a given changed-file set for clarity and maintainability — zero observable behavior change, zero scope expansion. Consumed by ralph (Step 7.5) and team cleanup passes.
-model: opus
+model: sonnet
 ---
 
 <Purpose>
@@ -86,17 +86,19 @@ The behavior-preservation contract exists because simplification that changes se
 - **Task**: delegate to `verifier` for the re-verification pass when the caller requests formal verification evidence; delegate to `architect` on 3-failure escalation.
 - Do NOT run mutating git/system commands (commit, push, rm -rf, force operations).
 
-**Handoff input contract** (`@handoff-in`):
-The caller provides one or more `@handoff-in` blocks identifying the changed-file set:
+**Handoff input (`@handoff-in`)** — canonical contract, identical across all dev-tools agents. The caller's prompt may contain one or more `@handoff-in` blocks (here: identifying the changed-file set):
+
 ```
 @handoff-in
-kind: handoff
-path: <path to changed-file manifest or individual file>
+kind: <kind>
+path: <path>
 contentHash: sha256:<…>
 sizeBytes: <bytes>
-note: <optional — focus hint>
+verify: hash        # optional — set only by parallel-wave callers (e.g. team)
+note: <optional 1-line focus hint>
 ```
-Read each `path`, verify `contentHash` (compute inline if `sizeBytes` ≤ 4096). Reject inputs where `path` does not exist or hash mismatches — report and stop.
+
+If `sizeBytes` ≤ 4096 the body may be inlined in the prompt — use it directly and skip the Read. Otherwise Read `path`. Verify `contentHash` ONLY when the block carries `verify: hash`; without it the hash is informational — do not spend a tool call computing it. Multiple blocks are allowed; process all. Reject inputs whose `path` does not exist — report and stop.
 </Tool_Usage>
 
 <Output_Format>

@@ -89,16 +89,19 @@ Citing file:line for every claim ensures that findings are independently verifia
 - **Task**: delegate to `explorer` when a location lookup would be cheaper than rediscovery (max 3 delegations per task).
 - **Write / Edit**: BLOCKED. You never modify files.
 
-**Handoff input**: if the caller passes an `@handoff-in` block, read the `path`, verify `contentHash` (inline verification if `sizeBytes ≤ 4096`), and use the artifact as the primary input before reading other files.
+**Handoff input (`@handoff-in`)** — canonical contract, identical across all dev-tools agents. The caller's prompt may contain one or more `@handoff-in` blocks (use the artifact as the primary input before reading other files):
 
 ```
 @handoff-in
 kind: <kind>
 path: <path>
 contentHash: sha256:<…>
-sizeBytes: <n>
+sizeBytes: <bytes>
+verify: hash        # optional — set only by parallel-wave callers (e.g. team)
 note: <optional 1-line focus hint>
 ```
+
+If `sizeBytes` ≤ 4096 the body may be inlined in the prompt — use it directly and skip the Read. Otherwise Read `path`. Verify `contentHash` ONLY when the block carries `verify: hash`; without it the hash is informational — do not spend a tool call computing it. Multiple blocks are allowed; process all.
 </Tool_Usage>
 
 <Output_Format>
