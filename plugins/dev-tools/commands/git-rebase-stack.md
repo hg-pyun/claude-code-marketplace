@@ -99,7 +99,15 @@ Confirm via AskUserQuestion.
 - For simple stacks: rely on `git reflog`-based recovery instructions.
 
 ### Step 5: Execute rebase
-Delegate the mechanical rebase execution to `git-master` via Task:
+Route execution by the Step 4 risk assessment:
+
+**Low risk (1–2 branches):** execute inline in the main session via `Bash` — no delegation:
+```
+git rebase --onto <new-base> <old-base> --update-refs
+```
+On success proceed to Step 7; on conflict stop and proceed to Step 6 with the conflict output.
+
+**High risk (3+ branches, many commits, conflict potential):** delegate the mechanical rebase execution to `git-master` via Task — the verbose conflict output and retry loop benefit from context isolation:
 
 ```
 Task(subagent_type="git-master", prompt="""
@@ -127,19 +135,11 @@ git-master runs the git commands and returns results. The command reads `@handof
 - `status: failed` → surface the conflict context and proceed to Step 6.
 
 ### Step 6: Conflict handling
-On conflict (git-master returned `status: failed` with conflict context):
-1. Review conflict context returned by git-master (conflicting files and hunk details).
-2. If the conflict is clearly safe to auto-resolve (non-overlapping hunks reported by git-master): delegate resolution application back to git-master:
-   ```
-   Task(subagent_type="git-master", prompt="""
-   Apply conflict resolution and continue the rebase:
-   - git add <file(s)>
-   - git rebase --continue
-   Return @handoff-out with status complete or failed.
-   """)
-   ```
+On conflict (inline rebase stopped, or git-master returned `status: failed` with conflict context):
+1. Review the conflict context — conflicting files and hunk details, from the inline rebase output or git-master's report.
+2. If the conflict is clearly safe to auto-resolve (non-overlapping hunks): the main session decides the resolution and applies it **inline via `Bash`** — `git add <file(s)>` → `git rebase --continue`. Do NOT dispatch a second git-master instance for the continuation.
 3. If unsafe or ambiguous:
-   - Show conflict details to user (from git-master's report).
+   - Show conflict details to user.
    - AskUserQuestion: partial application (if succeeded branches are independently valid) vs full abort.
 
 ### Step 7: Verify results and report
@@ -159,20 +159,20 @@ On conflict (git-master returned `status: failed` with conflict context):
 </Steps>
 
 <Tool_Usage>
-- `Task(subagent_type="git-master", …)` for mechanical rebase execution (Step 5) and conflict-apply mechanics (Step 6). Pass the rebase plan as an `@handoff-in` block; read `@handoff-out` to route on `status`.
-- `Bash` for Steps 1–4 and 7–8 (working-tree checks, base detection, stack topology, verification, push). git-master owns the rebase/conflict Bash; the command owns everything else.
+- `Task(subagent_type="git-master", …)` for high-risk rebase execution only (Step 5, 3+ branches). Pass the rebase plan as an `@handoff-in` block; read `@handoff-out` to route on `status`.
+- `Bash` for Steps 1–4 and 6–8 plus low-risk Step 5 execution (working-tree checks, base detection, stack topology, inline rebase, conflict continuation via `git add` + `git rebase --continue`, verification, push). git-master owns the rebase Bash only on the high-risk path; the command owns everything else.
 - GitHub MCP (priority) and `gh` CLI (fallback) for PR/repo lookups.
 - `AskUserQuestion` at decision points (uncommitted changes, fork ambiguity, high-risk preview, ambiguous conflict resolution, push selection). The command — not git-master — owns all user interaction.
 </Tool_Usage>
 
 <Examples>
-**Example 1 — middle PR merged:**
+**Example 1 — middle PR merged (low risk, inline):**
 사용자: "step-1 머지됐어 정리해줘"
-흐름: clean tree → detect base = `develop` → stack = [step-1, step-2, step-3] → step-1 was merged into develop → rebase step-2 onto develop with `--update-refs` → backups not needed → push with `--force-with-lease`.
+흐름: clean tree → detect base = `develop` → stack = [step-1, step-2, step-3] → step-1 was merged into develop → low risk (effectively one rebase) → main session runs `git rebase --onto develop step-1 --update-refs` inline → backups not needed → push with `--force-with-lease`.
 
-**Example 2 — base update (high risk):**
+**Example 2 — base update (high risk, git-master):**
 사용자: "전체 스택 develop으로 리베이스"
-흐름: stash dirty tree → base = develop → 5-branch chain → preview shown → user confirms → create 5 backup branches → rebase from bottom → 한 곳 conflict → automatic resolution → continue → report before/after → push all selectively.
+흐름: stash dirty tree → base = develop → 5-branch chain → preview shown → user confirms → create 5 backup branches → delegate rebase to git-master → git-master returns `status: failed` with one conflict → non-overlapping hunks → main session resolves inline (`git add` → `git rebase --continue`) → report before/after → push all selectively.
 
 **Example 3 — fork structure:**
 사용자: "/git-rebase-stack"
@@ -184,6 +184,7 @@ On conflict (git-master returned `status: failed` with conflict context):
 - Base branch correctly detected (or user-specified)?
 - Stack topology determined and confirmed with user when ambiguous?
 - Backup branches created when complexity warranted?
+- Risk-based routing honored (low risk → inline Bash; high risk → git-master; conflict continuation always inline)?
 - `--update-refs` used so intermediate branch refs propagate?
 - Final report generated; backup cleanup guidance offered?
 - No `Co-Authored-By` trailer anywhere?

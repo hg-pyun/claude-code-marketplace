@@ -38,7 +38,7 @@ Writing PR titles + bodies by hand is tedious and inconsistent. This skill draft
 </Why_This_Exists>
 
 <Execution_Policy>
-- Use GitHub MCP tools for all GitHub operations. Fall back to `gh` CLI only if MCP is unavailable.
+- Use GitHub MCP tools for all GitHub operations (PR lookup/creation/update). Fall back to `gh` CLI only if MCP is unavailable. Base-branch detection is git-local first — no network call unless the local paths fail (see Step 2).
 - PR title `type(scope)` parts stay English; the description portion is `$LANGUAGE`.
 - PR body section headers (`## Summary`, `## Changes`) stay English; section content is `$LANGUAGE`.
 - Issue links (`Closes #123`) stay English.
@@ -67,10 +67,11 @@ Validate:
 2. If there are uncommitted changes, warn the user but continue.
 
 ### Step 2: Detect base branch
-**2-1. Get the repository default branch (priority order):**
-1. GitHub MCP — retrieve repository metadata.
-2. Parse `HEAD branch` from `git remote show origin`.
-3. Final fallback: `main` → `master`.
+**2-1. Get the repository default branch (local-first; network only on failure):**
+1. `git symbolic-ref refs/remotes/origin/HEAD --short` → strip the `origin/` prefix. No network round-trip; succeeds on any normally-cloned repo.
+2. If that ref is unset, do NOT hit the network yet — proceed to 2-2 first (reflog parent detection resolves the base in most cases without needing the default branch).
+3. Network lookup only when step 1 failed AND 2-2 falls through to the default branch: GitHub MCP repository metadata, then `HEAD branch` from `git remote show origin`.
+4. Final fallback: `main` → `master`.
 
 **2-2. Detect parent branch & check remote** — **[Parallel]** Execute:
 - `git reflog show <current-branch> --format='%gs' | tail -1` → parse parent branch from creation entry
@@ -104,6 +105,8 @@ Validate:
 1. `git log <base>..HEAD --oneline` → commit history
 2. `git diff <base>...HEAD --stat` → changed file statistics
 3. `git diff <base>...HEAD` → full diff
+
+> **Large-diff guard:** do not load a huge branch diff wholesale — when `--stat` indicates a large diff (e.g., >400 changed lines or >30 files), skip the full diff and work from `--stat` plus capped per-file excerpts (`git diff <base>...HEAD -- <file> | head -n 80`).
 
 ### Step 5: Generate PR title (Conventional Commit Format)
 Per `references/conventional-commit.md`. Title `type(scope)` parts stay English; the description portion is written in `$LANGUAGE`.
@@ -152,7 +155,7 @@ Summary and Changes auto-written **in $LANGUAGE** by analyzing the commit histor
 <Examples>
 **Example 1 — first PR for the branch:**
 User: "PR 만들어줘"
-Flow: status/remote/branch in parallel → base = `main` via MCP → push branch → no existing PR → title `feat(auth): JWT 만료 정책 추가` → body summary + changes in Korean → create PR → return URL.
+Flow: status/remote/branch in parallel → base = `main` via `git symbolic-ref` (no network) → push branch → no existing PR → title `feat(auth): JWT 만료 정책 추가` → body summary + changes in Korean → create PR → return URL.
 
 **Example 2 — draft PR in English:**
 User: "/github-pr --draft --lang=en"
@@ -164,7 +167,8 @@ Flow: branch reflog says created from `feature/step-1` → use it as base → pu
 </Examples>
 
 <Final_Checklist>
-- Did I detect the base branch before generating the body?
+- Did I detect the base branch before generating the body — local paths (symbolic-ref, reflog) first, network only on failure?
+- For a large diff, did I work from `--stat` + capped per-file excerpts instead of the full diff?
 - Did the title use English `type(scope)` + `$LANGUAGE` description?
 - Did the body use English headers (`## Summary`, `## Changes`) and `$LANGUAGE` content?
 - Did the body use real newlines (not escaped `\n`)?

@@ -41,8 +41,8 @@ Stage-aware worker routing (planner decomposes, executor implements, test-engine
 
 **Parallel execution rules**:
 - Stages are sequential globally (plan → prd → exec → verify → fix loop). Within a story, Red → Green → Refactor is sequential.
-- Stage 3 (team-exec): independent stories' Red/Green steps run in parallel — fire N Task calls in ONE message per wave, capped by `--max-parallel`.
-- Stage 4 verify: `reviewer` and `critic` run in parallel — the one documented exception to the "no parallel reviewers" rule, justified because they score the same final artifact independently and it saves wall-clock. `--no-critic` skips critic.
+- Stage 3 (team-exec): independent stories' Red/Green steps run in parallel — fire N Task calls in ONE message per batch, capped by `--max-parallel`. Within a wave, Red→Green is **pipelined per story**: each story's `executor` fires as soon as that story's `test-engineer` returns (Red still precedes Green within the story — the Iron Law holds; there is no cross-story barrier between Red and Green).
+- Stage 4 verify: `reviewer` and `critic` run in parallel — the one documented exception to the "no parallel reviewers" rule, justified because they review the same final artifact independently **at partitioned altitudes** (reviewer owns code-level findings; critic owns spec-level gaps — not a second full code review) and it saves wall-clock. `--no-critic` skips critic.
 - `verifier` runs once per **stage**, NOT per wave: one call after all Stage 3 waves, one call after each Stage 5 fix round.
 
 **Story decomposition rules**:
@@ -83,14 +83,14 @@ rm -f "<target>.lock/owner.txt" && rmdir "<target>.lock"
 
 If acquire times out (max 10 retries, initial 100 ms, cap 2 s, multiplicative jitter ±20%), the worker MUST report up to the lead instead of overwriting; the lead serializes the critical section in the main session.
 
-**events.jsonl logging** (single schema definition; team KEEPS per-dispatch frequency under the lock — this is legitimate wave coordination): Stage 3 / Stage 5 append one JSON line per coordination event (dispatch and return). Acquire the events.jsonl lock first, then append, then release. File: `.dt-handoff/<slug>/events.jsonl`, `kind: trace`, `retention: session`. Each line conforms to the §9 handoff-protocol schema:
+**events.jsonl logging** (single schema definition; team KEEPS per-dispatch event granularity — one JSON line per coordination event, dispatch and return — but batches the writes): events.jsonl is a write-only audit trace with a single writer (the lead) and no read-back, so the lead **buffers event lines in-session and flushes them at each barrier boundary** (end of each Stage-3 wave, end of each stage / fix round) as ONE lock acquire → batch append → release, instead of paying a per-event lock cycle. The event schema and line format are unchanged — only the write timing is batched. The mkdir lock stays per-write on files with real concurrent writers (fallback-mode `prd.json`, written by workers). File: `.dt-handoff/<slug>/events.jsonl`, `kind: trace`, `retention: session`. Each line conforms to the §9 handoff-protocol schema:
 
 ```jsonl
 {"ts":"<ISO8601>","producer":"team","consumer":"test-engineer","event":"dispatch","kind":"handoff","path":".dt-handoff/<slug>/prd.json","status":"pending","verdict":null}
 {"ts":"<ISO8601>","producer":"verifier","consumer":"team","event":"return","kind":"advisor","path":".dt-handoff/<slug>/artifacts/ask/verifier-<ISO8601>.md","status":"complete","verdict":"APPROVE"}
 ```
 
-Fields: `ts` (ISO8601 UTC), `producer`, `consumer`, `event` (`dispatch`|`return`), `kind`, `path`, `status`, `verdict` (null unless a judgment agent). Stage steps say "append dispatch/return events" — they do not re-inline this schema.
+Fields: `ts` (ISO8601 UTC), `producer`, `consumer`, `event` (`dispatch`|`return`), `kind`, `path`, `status`, `verdict` (null unless a judgment agent). Stage steps say "buffer dispatch/return events" — they do not re-inline this schema; flushing follows the barrier rule above.
 
 **Handoff descriptor frontmatter** (team-*.md docs): every `team-<stage>.md` the lead writes MUST open with this 9-field OMC descriptor before the heading. Machine-authoritative schema: `scripts/validate.sh` (Descriptors lane header).
 
@@ -135,7 +135,7 @@ Each stage is declarative: **goal · delegate · input→output · success / fai
 - **Delegate `explorer`** (hand in: the task description): map the surfaces involved — files, modules, integration points likely touched.
 - **Delegate `planner`** (hand in: `kind: plan` @ `plan.md`, plus the explorer summary): decompose into independent stories suitable for parallel execution. Each story: `id`, `description`, `layer` (test/impl/refactor/infra), `dependsOn[]`, `fileScope[]`, `risk`, testable acceptance criteria. Planner returns structured plan content; the lead writes it to disk.
 - **Delegate `architect`** (hand in: `kind: advisor` @ the planner findings file) for any stories tagged `design-heavy`: flag interface concerns; consume the verdict to adjust story scope if needed.
-- **Output**: write `.dt-handoff/<slug>/team-plan.md` (decomposition, rejected alternatives, dependency DAG, risk list, parallelism budget). Append dispatch/return events.
+- **Output**: write `.dt-handoff/<slug>/team-plan.md` (decomposition, rejected alternatives, dependency DAG, risk list, parallelism budget). Buffer dispatch/return events; flush at the stage boundary.
 
 ### Stage 2: team-prd (Acceptance Criteria)
 - **Goal**: convert the plan into a machine-checkable `prd.json`.
@@ -149,18 +149,17 @@ Each stage is declarative: **goal · delegate · input→output · success / fai
   - Wave N+1 = stories whose deps are all completed in waves 1..N.
   - **Cycle detection**: if no topological sort exists, STOP and report the cycle before proceeding.
 - **For each wave** (cap concurrency by `--max-parallel`; split oversized waves into sequential sub-batches):
-  - **Red** — fire `test-engineer` Tasks in parallel (ONE message) for all stories with `layer != refactor` and no existing Red test. Hand in: `kind: prd` @ `prd.json` + the story note. Append dispatch events.
-  - Wait for all Red outputs, consume each `@handoff-out`, record red-test paths in `prd.json`, append return events.
-  - **Green** — fire `executor` Tasks in parallel (ONE message). Hand in: `kind: prd` @ `prd.json` + the red-test path. Append dispatch events.
-  - Wait for all Green outputs, consume each `@handoff-out`, update `prd.json` for stories reporting `status: complete`, append return events.
-- **Per-stage verifier gate** (after ALL waves, NOT per wave): fire ONE `verifier` Task covering all changed files. Hand in: `kind: prd` @ `prd.json` + the changed-file list. Route on its `verdict` per `<Execution_Policy>`: APPROVE/ACCEPT_WITH_RESERVATIONS → Stage 4; REVISE/REJECT → route failing stories straight to Stage 5 (do not enter Stage 4 until verifier approves). Append the return event.
+  - **Red** — fire `test-engineer` Tasks in parallel (ONE message) for all stories with `layer != refactor` and no existing Red test; stories with no Red step (`layer == refactor`) fire their `executor` in the same message. Hand in: `kind: prd` @ `prd.json` + the story note. Buffer dispatch events.
+  - **Green (per-story pipeline)** — do NOT wait for all Red outputs. As each `test-engineer_i` returns: consume its `@handoff-out`, record the red-test path in `prd.json`, and immediately fire `executor_i` for that story (hand in: `kind: prd` @ `prd.json` + the red-test path). Red → Green stays sequential WITHIN each story (TDD Iron Law); across stories the pipeline overlaps. When several Red outputs land together, batch their `executor` dispatches in ONE message. Buffer dispatch/return events.
+  - **Wave barrier** — the wave ends when every story's Green `@handoff-out` is consumed and `prd.json` is updated for stories reporting `status: complete`. Flush buffered events here (single locked batch append).
+- **Per-stage verifier gate** (after ALL waves, NOT per wave): fire ONE `verifier` Task covering all changed files. Hand in: `kind: prd` @ `prd.json` + the changed-file list. Route on its `verdict` per `<Execution_Policy>`: APPROVE/ACCEPT_WITH_RESERVATIONS → Stage 4; REVISE/REJECT → route failing stories straight to Stage 5 (do not enter Stage 4 until verifier approves). Buffer the return event; flush at the stage boundary.
 - **Output**: write `.dt-handoff/<slug>/team-exec.md` (completed stories, parallelism realized, verifier verdict, single-story escalations, files changed).
 
 ### Stage 4: team-verify (Review)
 - **Goal**: independent multi-perspective review of the changed file set against the PRD.
-- **Delegate `reviewer` + `critic` in parallel** (ONE message, unless `--no-critic` skips critic). Hand in to both: `kind: prd` @ `prd.json` + the changed-file list. `reviewer` = severity-rated review against ACs; `critic` = adversarial pressure test (principle-option consistency, missed alternatives, residual risk).
+- **Delegate `reviewer` + `critic` in parallel** (ONE message, unless `--no-critic` skips critic). Hand in to both: `kind: prd` @ `prd.json` + the changed-file list. The pair is **partitioned, not duplicated**: `reviewer` = severity-rated code-level review against ACs (line-level findings); `critic` = spec-level pressure test ONLY — gaps in AC satisfaction, missed alternatives, residual risk (What's-Missing focus). The critic dispatch prompt MUST state the partition explicitly — "reviewer owns code-level findings; do not report line-level code issues" — per critic's own role boundary (diff review belongs to reviewer; critic judges plan-shaped gaps). On re-verification rounds (2nd Stage-4 entry onward), dispatch critic with `note: depth=targeted` (critic's lightweight mode), scoped to the fixed stories.
 - **Route on verdicts** per `<Execution_Policy>`: all APPROVE/ACCEPT_WITH_RESERVATIONS → Stage 4.5; any ITERATE/REVISE/REJECT → collect findings from each agent's `path`, mark affected stories `passes: false`, route to Stage 5.
-- **Output**: write `.dt-handoff/<slug>/team-verify.md` (combined findings, verdict values, severity counts, which stories return to fix). Append reviewer/critic return events.
+- **Output**: write `.dt-handoff/<slug>/team-verify.md` (combined findings, verdict values, severity counts, which stories return to fix). Buffer reviewer/critic return events; flush at the stage boundary.
 
 ### Stage 4.5: team-cleanup (skip if `--no-deslop`)
 - **Goal**: behavior-preserving simplification scoped to the changed file set.
@@ -170,9 +169,9 @@ Each stage is declarative: **goal · delegate · input→output · success / fai
 ### Stage 5: team-fix (Bounded Iteration)
 - **Goal**: resolve Stage 4 (or Stage 3 verifier) findings, gate, and re-verify — within the 3-iteration bound.
 - For each flagged story, reset `passes: false` with the finding ID and source agent attached.
-- **Delegate `executor` Tasks in parallel** (ONE message), one per finding. Hand in: `kind: advisor` @ the relevant findings file + a one-line finding summary (e.g. "Finding REV-003 on US-002"). Append dispatch events.
-- **Per-stage verifier gate** (after all fix executors complete): fire ONE `verifier` Task. Hand in: `kind: prd` @ `prd.json` + the fixed-story list. Consume the `verdict`; append the return event.
-- **Re-verify**: return to Stage 4 for re-verification of the fixed stories only (reviewer + critic).
+- **Delegate `executor` Tasks in parallel** (ONE message), one per finding. Hand in: `kind: advisor` @ the relevant findings file + a one-line finding summary (e.g. "Finding REV-003 on US-002"). Buffer dispatch events.
+- **Per-stage verifier gate** (after all fix executors complete): fire ONE `verifier` Task. Hand in: `kind: prd` @ `prd.json` + the fixed-story list. Consume the `verdict`; buffer the return event and flush at the fix-round boundary.
+- **Re-verify**: return to Stage 4 for re-verification of the fixed stories only (reviewer + critic, with critic at `note: depth=targeted` per Stage 4).
 - **Bound**: cap at 3 verify→fix iterations. After 3, escalate unresolved findings to `architect` and stop `BLOCKED_AFTER_VERIFY`.
 
 ### Stage 6: Report and Stop
@@ -203,7 +202,7 @@ Each stage is declarative: **goal · delegate · input→output · success / fai
 <Tool_Usage>
 - **Read**: load plan.md, prior handoff docs, source files for AC verification, `@handoff-out` findings at each agent's `path`.
 - **Write/Edit**: handoff docs (`team-*.md`), `prd.json` story updates, `progress.txt` appendices.
-- **Bash**: run tests / build / lint / typecheck for AC verification; acquire the mkdir lock before any shared-file write and append to `events.jsonl` under it; regression in Stage 4.5. NO `git commit`, `git push`, `gh pr`.
+- **Bash**: run tests / build / lint / typecheck for AC verification; acquire the mkdir lock before any shared-file write; flush buffered `events.jsonl` lines as ONE locked batch append per barrier (per `<Execution_Policy>`); regression in Stage 4.5. NO `git commit`, `git push`, `gh pr`.
 - **Task** (bare agent names, no plugin prefix — single roster): `explorer` (Stage 1 discovery), `planner` (Stage 1 decomposition + DAG + ACs), `architect` (Stage 1 design review for `design-heavy` stories; also the 3-fail escalation target), `test-engineer` (Red), `executor` (Green/Refactor/Fix), `verifier` (Stage 3 and Stage 5 completion gates), `reviewer` + `critic` (Stage 4), `code-simplifier` (Stage 4.5 cleanup). This is the complete worker pool.
 - **ToolSearch**: load `TeamCreate` / `TaskCreate` / `SendMessage` schemas before Stage 3 if using native multi-agent tools (else fall back to direct `prd.json` write + poll).
 - **TodoWrite**: track wave-by-wave progress in-session.
@@ -213,10 +212,10 @@ Each stage is declarative: **goal · delegate · input→output · success / fai
 
 <Examples>
 **Example 1 — 6-module refactor, full parallelism**:
-User: `/team --from-plan=.dt-handoff/auth-refactor/plan.md`. Stage 1: explorer maps 6 modules → planner decomposes into 6 independent stories (`dependsOn: []`, falsifiable ACs) → architect reviews 1 design-heavy story, no changes. Stage 2: prd.json has 6 stories (4 impl + 2 test). Stage 3: Wave 1 fires 6 test-engineer Tasks in parallel (Red), then 6 executor Tasks in parallel (Green) → all Green; verifier gate `APPROVE`; events.jsonl appended throughout under lock. Stage 4: reviewer + critic in parallel → both `APPROVE`. Stage 4.5: code-simplifier → 2 minor edits → regression PASS. Stage 6: "6 stories, ~6x parallelism, ready for commit. Suggest /git-commit and /github-pr." STOP.
+User: `/team --from-plan=.dt-handoff/auth-refactor/plan.md`. Stage 1: explorer maps 6 modules → planner decomposes into 6 independent stories (`dependsOn: []`, falsifiable ACs) → architect reviews 1 design-heavy story, no changes. Stage 2: prd.json has 6 stories (4 impl + 2 test). Stage 3: Wave 1 fires 6 test-engineer Tasks in parallel (Red); as each Red returns, its story's executor fires immediately (3 Reds land together → one 3-Task executor message) → all Green; verifier gate `APPROVE`; events buffered per dispatch/return and flushed in one locked append at the wave barrier. Stage 4: reviewer + critic in parallel → both `APPROVE`. Stage 4.5: code-simplifier → 2 minor edits → regression PASS. Stage 6: "6 stories, ~6x parallelism, ready for commit. Suggest /git-commit and /github-pr." STOP.
 
 **Example 2 — partial fix loop with verdict routing**:
-Stage 4 reviewer `verdict: REVISE` (findings at `artifacts/ask/reviewer-<ts>.md`); critic `APPROVE`. Lead reads the reviewer findings, Stage 5 fires 2 targeted executor Tasks handing in the reviewer findings file, verifier gate `APPROVE`, return to Stage 4 → both APPROVE. Iterations: 1/3. Proceed to Stage 4.5.
+Stage 4 reviewer `verdict: REVISE` (findings at `artifacts/ask/reviewer-<ts>.md`); critic `APPROVE`. Lead reads the reviewer findings, Stage 5 fires 2 targeted executor Tasks handing in the reviewer findings file, verifier gate `APPROVE`, return to Stage 4 (critic at `note: depth=targeted`) → both APPROVE. Iterations: 1/3. Proceed to Stage 4.5.
 
 **Example 3 — over-budget refuse**:
 User: `/team 'rewrite the entire backend'`. Stage 1 planner returns 35 stories → exceeds the 20 hard cap. Lead refuses without entering Stage 2: "Story count 35 exceeds team's hard cap of 20. Run `/ralplan` to split into 2-3 phases, each fed into a separate team session." STOP.
@@ -234,11 +233,11 @@ Stage 3 wave derivation finds US-002 → US-004 → US-002. No topological sort 
 <Final_Checklist>
 - Did Stage 1 dispatch `explorer` for discovery AND `planner` for decomposition (not architect directly), and route `design-heavy` stories to `architect`?
 - Did `planner` return stories with explicit `dependsOn[]`, `fileScope[]`, and falsifiable ACs? Did Stage 2 refine generic ACs into testable ones?
-- Did Stage 3 derive waves from the DAG, detect cycles, and fire parallel Tasks in a single message per wave (not sequential)?
-- Did every impl story go through Red (test-engineer) → Green (executor)?
-- Did the lead append dispatch/return events to `events.jsonl` under the mkdir lock throughout?
+- Did Stage 3 derive waves from the DAG, detect cycles, fire parallel Tasks in a single message per batch (not sequential), and pipeline each story's executor off its own Red return (no cross-story Red barrier)?
+- Did every impl story go through Red (test-engineer) → Green (executor), in that order within the story?
+- Did the lead buffer per-dispatch/return events and flush them to `events.jsonl` as ONE locked batch append at each barrier (wave end / stage end), schema unchanged?
 - Did Stage 3 end with ONE `verifier` gate (covering all stories, not per-wave), and Stage 5 with a `verifier` gate after each fix round?
-- Did Stage 4 run reviewer + critic in parallel (unless `--no-critic`)?
+- Did Stage 4 run reviewer + critic in parallel (unless `--no-critic`), with the critic prompt partitioned to spec-level gaps ("reviewer owns code-level findings") and `note: depth=targeted` on re-verification rounds?
 - Did the lead route on `@handoff-out` `verdict` fields (never prose keyword matching)?
 - Did Stage 4.5 dispatch `code-simplifier` scoped to changed files (unless `--no-deslop`), and did post-cleanup regression pass?
 - Did I respect the 3-iteration verify→fix cap, and refrain from all git/gh mutations?

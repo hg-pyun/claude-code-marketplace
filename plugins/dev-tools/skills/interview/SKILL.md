@@ -10,7 +10,10 @@ description: >
   TRIGGER when: user wants a quick but thorough requirements interview before
   coding, says "인터뷰 해줘", "인터뷰", "가볍게 인터뷰", "스펙 인터뷰",
   "interview me", "quick interview", "lightweight interview", or invokes
-  `/interview`.
+  `/interview`. Also the downshift target when `deep-interview` detects a
+  single-component, clear-scope topic and offers the lighter path
+  ("가볍게/빠르게" → here; "심층/ouroboros/socratic/ambiguity scoring" →
+  `deep-interview`).
   DO NOT TRIGGER when: user wants the heavy mathematically-gated flow ("deep
   interview", "심층 인터뷰", "ouroboros", "socratic", ambiguity scoring) — route
   to `deep-interview`; user already has a detailed spec/PRD (use a review or

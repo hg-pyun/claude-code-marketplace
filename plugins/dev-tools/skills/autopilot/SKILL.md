@@ -47,13 +47,14 @@ The conductor stays thin on purpose. The handoff mechanics (`@handoff-in`/`@hand
 - Confirm the detected resumption point with one `AskUserQuestion` (suppressed by `--no-prompt`). `--resume=fresh` ignores existing artifacts and restarts at Phase 1.
 
 **Validation model (Phase 5)** — gates decide, advisors annotate:
-- **Gates** (a failing gate sends the work back to Phase 3): `reviewer` (`verdict` REVISE/REJECT), `security-auditor` (CRITICAL @ HIGH confidence), `architect` (CRITICAL @ HIGH confidence). With `--full-validation`, `critic` (`verdict` REJECT) joins the gates.
-- **Advisors** (recorded in `autopilot-validation.md`, never block): `performance-analyst` and `doc-writer` findings, and `critic` ACCEPT_WITH_RESERVATIONS. Advisors run only under `--full-validation`.
-- Max 2 Phase 5 → Phase 3 re-entries; on the third failure stop `PHASE5_REJECTED`.
+- **Gates** (a failing gate triggers the gate-failure routing below): `reviewer` (`verdict` REVISE/REJECT), `security-auditor` (CRITICAL @ HIGH confidence), `architect` (CRITICAL @ HIGH confidence). With `--full-validation`, `critic` (`verdict` REJECT) and the end-to-end `verifier` (`verdict` REVISE/REJECT) join the gates.
+- **Advisors** (recorded in `autopilot-validation.md`, never block): `performance-analyst` and `doc-writer` findings, and `critic` ACCEPT_WITH_RESERVATIONS. Advisors run only under `--full-validation`. The provenance-deferred `test-engineer` coverage audit (see Phase 4) joins as a read-only panel member when applicable.
+- **Gate-failure routing**: failing findings ≤ 3 AND none architectural → targeted path: `executor` applies targeted fixes → `verifier` re-verifies with `note: scope=<impacted checks>` (always include `BUILD,ERROR_FREE` alongside the impacted checks so a targeted fix cannot silently break the build) → re-fire ONLY the failed gate(s). Otherwise (critic `REJECT`, a design-invalidating verdict, or > 3 findings) → full Phase 3 re-entry with the findings.
+- Both paths share one cap: max 2 re-entries; on the third failure stop `PHASE5_REJECTED`.
 
 **Verdict routing**: route on the machine-readable `verdict` field of judgment agents (`reviewer`, `critic`, `verifier`) and on severity+confidence for advisory agents (`architect`, `security-auditor`, `performance-analyst`, `doc-writer`). Never route on prose keyword matching. The `verdict` enum and `@handoff-out` shape are defined in the handoff protocol (see `<Tool_Usage>`).
 
-**Execution path (Phase 3)**: default `ralph` (sequential). Use `team` when `plan.md` identifies ≥ 3 independent workstreams with no shared file scope. `--exec=ralph|team` forces the choice. Announce the choice and rationale.
+**Execution path (Phase 3)**: read the `Parallel workstreams: <n> (file-scope disjoint)` field from `plan.md` `## Metadata` (emitted by ralplan). n ≥ 3 → `team`; n = 1–2 → `ralph` (ralph runs file-scope-disjoint stories as a wave, so 2 workstreams are efficient). Field absent (legacy plan) → fall back to the prose heuristic: `team` when the plan identifies ≥ 3 independent workstreams with no shared file scope, else `ralph`. `--exec=ralph|team` forces the choice. Announce the choice and rationale.
 
 **events.jsonl** (phase-boundary logging): append one JSON line to `.dt-handoff/<slug>/events.jsonl` at each phase boundary only — `phase_start`, `phase_complete`, `phase_fail`, `phase_retry`. Per-agent dispatch/return tracing is NOT logged here (that granularity lives in `team`'s wave scheduler). `kind: trace`, `retention: session`. Format per handoff protocol §9.
 
@@ -106,19 +107,20 @@ Each phase is declarative: **goal · delegate · input→output · success / fai
 - Skip if `plan.md` already present (resume rule).
 
 ### Phase 3 — Execution (`ralph` | `team`)
-- **Goal**: implement the plan to a green, reviewed state.
-- **Choose path**: `--exec` if set; else `team` when `plan.md` shows ≥ 3 independent workstreams with no shared files, else `ralph`. Announce the choice + rationale.
-- **Delegate**: `Skill("dev-tools:ralph", args="--from-plan=.dt-handoff/<slug>/plan.md")` or the same with `dev-tools:team`.
+- **Goal**: implement the plan to a green, story-verified state.
+- **Choose path**: `--exec` if set; else route on the `plan.md` `## Metadata` `Parallel workstreams` field per `<Execution_Policy>` (prose-heuristic fallback when the field is absent). Announce the choice + rationale.
+- **Delegate**: `Skill("dev-tools:ralph", args="--from-plan=.dt-handoff/<slug>/plan.md --approver=defer --regression=defer")` or `Skill("dev-tools:team", args="--from-plan=.dt-handoff/<slug>/plan.md")` (team keeps its own gates; the defer flags are ralph-only).
+- **Boundary invariant**: the defer flags remove duplicate gates at the skill boundary, not the gates themselves. On the ralph path the final code state is gated by exactly one fresh verifier (Phase 4 covers the regression ralph deferred) and one reviewer (Phase 5 is the single batch approval). On the team path team keeps its internal gates and Phases 4–5 are additive boundary re-verification on fresh evidence — never fewer than one fresh verifier on any path.
 - **Input → Output**: `plan.md` → `.dt-handoff/<slug>/prd.json` + code changes (+ `progress.txt` / `team-final.md`).
-- **Success**: all stories `passes: true`, reviewer `verdict: APPROVE`, post-cleanup regression GREEN. **Fail**: sub-skill escalates or hits cap → stop `PHASE3_BLOCKED` (do not advance).
+- **Success**: all stories `passes: true` with per-story verifier APPROVE; ralph's report records the deferred batch approval/regression (team path: reviewer `verdict: APPROVE` + regression GREEN as before). **Fail**: sub-skill escalates or hits cap → stop `PHASE3_BLOCKED` (do not advance).
 
-### Phase 4 — QA (`test-engineer` + `executor` + `verifier`, max `--max-qa-cycles`)
-- **Goal**: harden the test suite and confirm clean regression on fresh evidence.
-- **Loop** (default 5 cycles):
-  1. `test-engineer` audits the changed files (from `prd.json` evidence) for coverage gaps (HIGH/MEDIUM/LOW), flaky tests, pyramid imbalance; authors failing tests for HIGH/MEDIUM gaps and confirms Red.
-  2. If new Red tests exist, `executor` makes them green with minimal diff.
-  3. `verifier` runs the full BUILD/TEST/LINT/FUNCTIONALITY/TODO/ERROR_FREE protocol and writes findings to `artifacts/ask/verifier-qa-<ISO8601>.md`.
-- **Route on `verifier` `verdict`**: `APPROVE` → exit Phase 4. `REVISE` → loop with the failing checks as input. `REJECT` → stop `PHASE4_QA_STUCK`.
+### Phase 4 — QA (`verifier` gate always; `test-engineer` audit by provenance; max `--max-qa-cycles`)
+- **Goal**: confirm clean regression on fresh evidence, and harden the test suite where provenance warrants it.
+- **Regression gate (always runs)**: `verifier` runs the full BUILD/TEST/LINT/FUNCTIONALITY/TODO/ERROR_FREE protocol and writes findings to `artifacts/ask/verifier-qa-<ISO8601>.md`. This is the batch regression gate ralph deferred via `--regression=defer` — it must fire on every path (on the team path it duplicates team's internal gate by design: boundary re-verification on fresh evidence, not a de-dup miss).
+- **Coverage audit (provenance-conditional)**:
+  - P3 ran `team`, OR the pipeline resumed from existing artifacts, OR `plan.md` risk tier is HIGH → audit in cycle 1: `test-engineer` audits the changed files (from `prd.json` evidence) for coverage gaps (HIGH/MEDIUM/LOW), flaky tests, pyramid imbalance; authors failing tests for HIGH/MEDIUM gaps and confirms Red; `executor` greens them with minimal diff before the verifier gate.
+  - Fresh full-ralph run with risk tier LOW/MEDIUM → skip the cycle-1 audit; the `test-engineer` audit joins the Phase 5 panel as a read-only member (parallel). Only if it reports gaps does the `executor` + `verifier` loop fire then.
+- **Route on `verifier` `verdict`**: `APPROVE` → exit Phase 4. `REVISE` → loop with the failing checks as input (cap `--max-qa-cycles`, default 5). `REJECT` → stop `PHASE4_QA_STUCK`.
 - **Fail**: same failing checks persist 3 cycles → stop `PHASE4_QA_STUCK`.
 
 ### Phase 5 — Validation (gates + opt-in advisors)
@@ -126,8 +128,8 @@ Each phase is declarative: **goal · delegate · input→output · success / fai
 - **Fire the panel in parallel** (single message, multiple Task calls). Default: the three gates. With `--full-validation`: add the three advisors.
   - Gates: `reviewer` (spec-compliance + severity-rated diff, returns `verdict`), `security-auditor` (AuthN/AuthZ/Secret/Crypto/Injection/SAST/Config), `architect` (SOLID, scalability, integration risk).
   - Advisors (`--full-validation`): `critic` (steelman the case against; returns `verdict`), `performance-analyst` (Hotpath/Complexity/IO/Memory/Cache), `doc-writer` (Missing/Outdated/Inconsistent/Unclear — read-only this invocation).
-- Each agent persists findings to `artifacts/ask/<agent>-<ISO8601>.md` and returns an `@handoff-out` block (see `<Tool_Usage>` for the shared directive). Optionally dispatch `verifier` for a final end-to-end check after the panel returns; a `verifier` `verdict` of `REVISE`/`REJECT` counts as a gate failure (Phase 3 re-entry).
-- **Combine** per the validation model in `<Execution_Policy>`: any gate failure → return to Phase 3 with the findings (max 2 re-entries, append `phase_retry`); advisors → record only. On clean gates → write `.dt-handoff/<slug>/autopilot-validation.md` consolidating every perspective.
+- Each agent persists findings to `artifacts/ask/<agent>-<ISO8601>.md` and returns an `@handoff-out` block (see `<Tool_Usage>` for the shared directive). An end-to-end `verifier` pass joins the SAME parallel batch (read-only at calling time, like the rest of the panel) — skipped by default because the Phase 4 verifier has just passed; include it under `--full-validation` or on explicit user request. When fired, its `REVISE`/`REJECT` counts as a gate failure. The provenance-deferred `test-engineer` audit (Phase 4 rule) also joins the batch read-only when applicable.
+- **Combine** per the validation model in `<Execution_Policy>`: any gate failure → gate-failure routing (targeted fix + scoped verifier + re-fire only the failed gates, or full Phase 3 re-entry; shared cap 2, append `phase_retry`); advisors → record only. On clean gates → write `.dt-handoff/<slug>/autopilot-validation.md` consolidating every perspective.
 
 ### Wrap-up (post-pipeline)
 - Append `phase_complete` to `events.jsonl`.
@@ -139,7 +141,7 @@ Each phase is declarative: **goal · delegate · input→output · success / fai
 
 <Tool_Usage>
 - **Skill**: `dev-tools:deep-interview` (P1), `dev-tools:ralplan` (P2), `dev-tools:ralph` or `dev-tools:team` (P3). One sub-skill per phase, sequential.
-- **Task**: `test-engineer` + `executor` + `verifier` (P4 loop); the Phase 5 panel in parallel (one message). Bare agent names — no plugin prefix.
+- **Task**: `verifier` (P4 gate, always) + provenance-conditional `test-engineer` / `executor` (P4 loop); the Phase 5 panel in parallel (one message); `executor` + scoped `verifier` on the Phase 5 targeted path. Bare agent names — no plugin prefix.
 - **Read**: load `.dt-handoff/<slug>/*.md` and `prd.json` between phases.
 - **Write**: `autopilot-validation.md` (P5 consolidation), `events.jsonl` phase-boundary lines, `progress.txt` append.
 - **Bash**: `mkdir -p` the artifact root at Setup; run test/build/lint for inter-phase checks; `cleanup.sh --slug=<slug>` at Wrap-up.
@@ -151,7 +153,7 @@ Each phase is declarative: **goal · delegate · input→output · success / fai
 <Examples>
 **Example 1 — fresh start, full pipeline**:
 User: `/autopilot "Linear webhook 처리 서비스 만들어줘"`
-Setup: no artifacts → create `.dt-handoff/linear-webhook/`, announce. Phase 1: deep-interview → `spec.md` (PASSED). Phase 2: ralplan → `plan.md` (pending approval); 4 ACs with shared file scope → `ralph`. Phase 3: ralph → 4 stories pass, reviewer APPROVE, regression GREEN. Phase 4: test-engineer finds 2 HIGH gaps → executor greens → verifier `APPROVE`, exit cycle 1. Phase 5 (default gates): reviewer APPROVE, security-auditor clean, architect clean → write `autopilot-validation.md`. Wrap-up: cleanup, "Ready for commit — /git-commit then /github-pr." STOP.
+Setup: no artifacts → create `.dt-handoff/linear-webhook/`, announce. Phase 1: deep-interview → `spec.md` (PASSED). Phase 2: ralplan → `plan.md` (pending approval; Metadata `Parallel workstreams: 2 (file-scope disjoint)`, risk MEDIUM) → `ralph`. Phase 3: ralph `--approver=defer --regression=defer` → 4 stories pass per-story verifier; report records the deferrals. Phase 4: fresh full-ralph + MEDIUM → cycle-1 audit deferred to the P5 panel; verifier full six-check `APPROVE` (the deferred regression gate), exit cycle 1. Phase 5 (default gates + read-only test-engineer audit): reviewer APPROVE, security-auditor clean, architect clean, audit finds no gaps → write `autopilot-validation.md`. Wrap-up: cleanup, "Ready for commit — /git-commit then /github-pr." STOP.
 
 **Example 2 — resume from existing plan**:
 User: `/autopilot "auth middleware 리팩터"` → Setup detects yesterday's `plan.md`; AskUserQuestion → "Resume". Phases 1–2 SKIPPED. Phase 3 runs `ralph` from the plan. Phases 4–5 run. Report notes "Phases 1–2 skipped (plan.md from 2026-05-21 reused)."
@@ -159,21 +161,24 @@ User: `/autopilot "auth middleware 리팩터"` → Setup detects yesterday's `pl
 **Example 3 — phase failure**:
 Phase 3 `ralph` hits 3-fail escalation on US-002 → append `phase_fail`, run Wrap-up cleanup, stop `PHASE3_BLOCKED`. Report names the blocking story and the unresolved error. Phases 4–5 not attempted.
 
-**Example 4 — Phase 5 gate re-entry**:
-`--full-validation`: critic returns `verdict: REJECT` ("a simpler key-value store would serve the same need"). Append `phase_retry`, return to Phase 3 to evaluate the simpler approach. Re-run Phase 4 (verifier `APPROVE`) and Phase 5 — reviewer + critic both `APPROVE`. Retries: 1/2.
+**Example 4 — Phase 5 gate re-entry (full)**:
+`--full-validation`: critic returns `verdict: REJECT` ("a simpler key-value store would serve the same need") — design-invalidating, so the targeted path does not apply. Append `phase_retry`, return to Phase 3 to evaluate the simpler approach. Re-run Phase 4 (verifier `APPROVE`) and Phase 5 — reviewer + critic both `APPROVE`. Retries: 1/2.
 
 **Example 5 — Phase 4 verifier REVISE**:
-Cycle 1: 2 Red tests authored → executor greens → verifier `REVISE` (1 assertion still red in auth.test.ts:88). Loop: executor again with the failing check → verifier `APPROVE`. Phase 4 exits cycle 2.
+P3 ran `team`, so the cycle-1 audit fires: 2 Red tests authored → executor greens → verifier `REVISE` (1 assertion still red in auth.test.ts:88). Loop: executor again with the failing check → verifier `APPROVE`. Phase 4 exits cycle 2.
+
+**Example 6 — Phase 5 gate re-entry (targeted)**:
+security-auditor reports 2 MAJOR findings (hardcoded header name, missing rate-limit check) — ≤ 3 and non-architectural → targeted path: executor fixes both → verifier re-verifies with `note: scope=TEST,ERROR_FREE` → re-fire security-auditor ONLY → clean. Other gate verdicts stand. Retries: 1/2 (shared cap).
 </Examples>
 
 <Final_Checklist>
 - Did Setup create `.dt-handoff/<slug>/`, init `events.jsonl`, probe resume, and announce the pipeline?
 - Did phases run STRICTLY sequentially, advancing only on each phase's success criterion?
 - Did I append `events.jsonl` at phase boundaries only (not per agent)?
-- Phase 3: did I auto-select ralph vs team from plan.md parallelism (unless `--exec`)?
-- Phase 4: did `test-engineer` author Red tests, `executor` green them, and `verifier` return `verdict: APPROVE` before exiting? Did it stop on 3 same-error cycles?
-- Phase 5: did the gates (reviewer + security-auditor + architect, plus critic under `--full-validation`) fire in parallel, and did I route on `verdict` / severity — never prose?
-- Did a gate failure (not an advisory finding) trigger Phase 3 re-entry, capped at 2?
+- Phase 3: did I route ralph vs team on the plan.md `## Metadata` `Parallel workstreams` field (prose fallback when absent, unless `--exec`), and pass `--approver=defer --regression=defer` to ralph (never to team)?
+- Phase 4: did the full six-check `verifier` gate run on every path (it is ralph's deferred regression gate), with the `test-engineer` audit fired per provenance (cycle 1 vs read-only Phase 5 panel member)? Did it stop on 3 same-error cycles?
+- Phase 5: did the gates (reviewer + security-auditor + architect, plus critic and the end-to-end verifier under `--full-validation`) fire in ONE parallel batch, and did I route on `verdict` / severity — never prose?
+- Did a gate failure (not an advisory finding) take the right path — targeted fix + scoped verifier + re-fire only the failed gates when ≤ 3 non-architectural findings, full Phase 3 re-entry otherwise — under the shared cap of 2?
 - Did I write `autopilot-validation.md` consolidating all fired perspectives?
 - Did Wrap-up cleanup run on every terminal path (success and failure)?
 - Did the final report list phase statuses and suggest `/git-commit` + `/github-pr` without invoking them?
@@ -187,7 +192,7 @@ Single source for terminal statuses. Every terminal path runs Wrap-up cleanup (`
 - `PHASE2_NO_CONSENSUS` — ralplan consensus not reached after 5 iterations.
 - `PHASE3_BLOCKED` — ralph/team escalates or hits cap; do not advance to Phase 4.
 - `PHASE4_QA_STUCK` — verifier `REJECT`, or same failing checks persist 3 cycles.
-- `PHASE5_REJECTED` — a gate keeps failing after 2 Phase 3 re-entries; surface the unresolved findings.
+- `PHASE5_REJECTED` — a gate keeps failing after 2 re-entries (targeted-fix or full Phase 3, shared cap); surface the unresolved findings.
 - User says "stop" / "cancel" → stop immediately, record the phase reached in `progress.txt`, run cleanup.
 </Escalation_And_Stop_Conditions>
 
@@ -197,12 +202,12 @@ Single source for terminal statuses. Every terminal path runs Wrap-up cleanup (`
 |-------|-------------------|-------|--------|-------------|
 | 1 Expansion | `deep-interview` | idea | `spec.md` | spec.md present |
 | 2 Planning | `ralplan` | spec.md | `plan.md` | plan.md Status valid |
-| 3 Execution | `ralph` \| `team` | plan.md | `prd.json` + code | all-pass + reviewer APPROVE |
-| 4 QA | `test-engineer` + `executor` + `verifier` | code + prd.json | new tests + `verifier-qa-*.md` | verifier `APPROVE` |
-| 5 Validation | gates: `reviewer`+`security-auditor`+`architect` (opt-in: `critic`+`performance-analyst`+`doc-writer`) | code | `autopilot-validation.md` + per-agent findings | gates clean |
+| 3 Execution | `ralph` \| `team` | plan.md | `prd.json` + code | all stories pass (ralph defers batch approval/regression to P4–P5; team: reviewer APPROVE) |
+| 4 QA | `verifier` gate (+ provenance-conditional `test-engineer` + `executor`) | code + prd.json | `verifier-qa-*.md` (+ new tests) | verifier `APPROVE` |
+| 5 Validation | gates: `reviewer`+`security-auditor`+`architect` (opt-in: `critic`+`performance-analyst`+`doc-writer`+`verifier`; conditional: read-only `test-engineer` audit) | code | `autopilot-validation.md` + per-agent findings | gates clean |
 
 ## Phase 5 parallelism note
-Phase 5 is the one intra-phase parallel pass in this skill. It is safe because the artifact is final code (not a moving target) and every panel agent is read-only at calling time (doc-writer is gated to read-only by the shared directive). This is NOT a license to parallelize advisor passes elsewhere.
+Phase 5 is the one intra-phase parallel pass in this skill. It is safe because the artifact is final code (not a moving target) and every panel agent is read-only at calling time (doc-writer is gated to read-only by the shared directive; the optional end-to-end `verifier` and the provenance-deferred `test-engineer` audit join the batch under the same argument). This is NOT a license to parallelize advisor passes elsewhere.
 
 ## Resume detail
 `--resume=auto` (default) detects the furthest valid artifact and proposes that resumption point; `--no-prompt` applies the highest-fit shortcut silently. `--resume=fresh` ignores existing artifacts and restarts at Phase 1.

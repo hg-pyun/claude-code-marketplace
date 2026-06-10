@@ -59,11 +59,14 @@ Conventional commits are valuable but tedious to write by hand, especially when 
 2. Retrieve the list of changed files and statistics with `git diff --cached --stat`.
 
 ### Step 3: Decide whether to split the commit
-After analyzing the diff, use the AskUserQuestion tool to ask whether to split.
+From the diff analysis, group the changes into logical groups. The diff contains **multiple logical groups** when it mixes unrelated concerns — file clusters serving different intents, or changes that would each need their own `type(scope)` (e.g., a migration + a UI change + an unrelated typo fix).
+
+- **Single logical group** → do NOT ask. Proceed directly to Step 4 with a single commit.
+- **Two or more logical groups** → use the AskUserQuestion tool to ask whether to split.
 
 Information to include in the question:
 - The list of changed files with a brief summary per file.
-- If splitting seems beneficial, include a recommended split plan (files + message summary for each commit) in the option description.
+- The recommended split plan (files + message summary for each commit) in the option description.
 
 AskUserQuestion options:
 - **"Commit all at once" (Recommended)** — create a single commit with all changes.
@@ -84,14 +87,14 @@ Generate the commit message per `references/conventional-commit.md`. Subject + b
 
 <Tool_Usage>
 - Use `Bash` for git operations: `git status`, `git diff`, `git add`, `git commit`, `git log`.
-- Use `AskUserQuestion` for the split-decision step.
+- Use `AskUserQuestion` for the split-decision step — only when Step 3 detects two or more logical groups; never for a single-group diff.
 - Do not invoke other agents for this skill's core flow; the `reviewer` agent may optionally be invoked separately if the user explicitly asks for a pre-commit review.
 </Tool_Usage>
 
 <Examples>
-**Example 1 — single commit:**
+**Example 1 — single commit (no split question):**
 User: "커밋해줘"
-Flow: `git status` → all staged → AskUserQuestion (Recommended: Commit all at once) → generate `feat(auth): JWT 만료 정책 추가` → `git commit -m "..."` → show `git log --oneline -1`.
+Flow: `git status` → all staged → diff is one logical group → no AskUserQuestion → generate `feat(auth): JWT 만료 정책 추가` → `git commit -m "..."` → show `git log --oneline -1`.
 
 **Example 2 — split commits:**
 User: "변경사항 저장해줘" (working tree has migration + UI button change + unrelated typo fix)
@@ -103,6 +106,7 @@ Flow: same as above but commit subject and body are written in English.
 </Examples>
 
 <Final_Checklist>
+- If the diff was a single logical group, did I commit directly without asking about splitting?
 - Did the commit message use `$LANGUAGE` for subject + body?
 - Are `type` and `scope` in English?
 - Is the commit message COMPLETELY FREE of any `Co-Authored-By` trailer or footer?

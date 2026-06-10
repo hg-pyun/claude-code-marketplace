@@ -39,6 +39,7 @@ Tracing an API bug from "this curl returns 500" to "this exact line in this exac
 <Execution_Policy>
 - Always run the user's actual cURL — do not skip Step 1 unless the network is unreachable.
 - Trace by signal priority (table below). Stream each step as you go.
+- Route Step 3 by signal grade: grade-1 signals (stack trace with direct file:line, or the 404 short-circuit) are traced inline by the main session via `Read`/`Grep`; weaker, indirect signals with real competing hypotheses delegate to the `tracer` agent.
 - Halt as soon as you can answer What / Where / Why.
 - Never apply fixes — present fix options for the user to choose from.
 - For non-trivial proposed fixes, optionally delegate to the `reviewer` agent for severity-rated review (see Step 4).
@@ -82,7 +83,11 @@ Extract signals from the response and determine the tracing order.
 Start from the highest-priority signal that exists.
 
 ### Step 3: Trace
-Delegate the reverse-trace to the `tracer` agent. Pass the cURL response body, status code, response headers, and the signals extracted in Step 2 as an `@handoff-in` block. Tracer applies the same signal-priority order, enumerates competing hypotheses, scores each with supporting and refuting evidence, and returns a ranked evidence chain with the full trace path (effect → intermediate evidence → file:line).
+Route the trace by signal grade:
+
+**Grade 1 — trace inline (no dispatch).** When the response contains a stack trace pointing directly at file:line (signal priority 1), or the 404 short-circuit from Step 2 applies, the main session traces immediately with `Read`/`Grep`: read the indicated file:line, or grep the route registration. There is one obvious entry point and no competing hypotheses — dispatching an agent would only add latency. If the inline trace stalls (the direct signal turns out to be misleading), fall through to the tracer path below.
+
+**Grade 2 or lower — delegate to the `tracer` agent.** When only indirect signals exist (error message/code, URL path, body field names, response structure) and competing hypotheses are real, delegate the reverse-trace. Pass the cURL response body, status code, response headers, and the signals extracted in Step 2 as an `@handoff-in` block. Tracer applies the same signal-priority order, enumerates competing hypotheses, scores each with supporting and refuting evidence, and returns a ranked evidence chain with the full trace path (effect → intermediate evidence → file:line).
 
 ```
 Task(
@@ -102,9 +107,9 @@ note: <1-line description of the effect — e.g., "HTTP 500 with stack trace; tr
 )
 ```
 
-Consume the tracer's output: read the ranked hypothesis table and the trace chain (effect → file:line). The top-ranked hypothesis and its file:line evidence become the input to Step 4.
+On the tracer path, consume the tracer's output: read the ranked hypothesis table and the trace chain (effect → file:line). The top-ranked hypothesis and its file:line evidence become the input to Step 4.
 
-**Halt condition:** tracer stops when it can answer **all three**:
+**Halt condition (inline or tracer):** stop when you can answer **all three**:
 1. **What** went wrong (technical cause)
 2. **Where** it happens (file:line)
 3. **Why** it happens (root cause)
@@ -129,44 +134,45 @@ Task(
 
 This delegation is optional — only invoke when the proposed fix is non-trivial and a review pass would be valuable.
 
-**Follow-up actions** (AskUserQuestion, situationally relevant):
-- **Retry with modified parameters** (always): accept changed values, re-run from Step 1
-- **View fix details** (when multiple fix options exist): show detailed code changes for a selected option
-- **Explore more code** (always): expand the call chain (callers/callees)
-- **Delegate review to the reviewer agent** (when a non-trivial fix is proposed)
-- **Provide expected response** (when 2xx and no expected value given): enable diff analysis
-- **Provide server logs** (when signals 1–3 all failed): request log path/content
-- **Retry with fresh token** (on 401/403): re-run with updated auth credentials
-- **Retry with modified headers** (on 406/415): adjust Content-Type, Accept, etc.
-- **Done** (always)
+**Follow-up options (prose, not a menu):** close the report with a short prose paragraph offering the situationally relevant next steps — the user replies in natural language. Do NOT raise an AskUserQuestion menu here. Mention only the options that apply:
+- Retry with modified parameters (re-run from Step 1 with changed values)
+- View detailed code changes for a fix option (when multiple fix options exist)
+- Explore more of the call chain (callers/callees)
+- Delegate review of a proposed fix to the `reviewer` agent (when a non-trivial fix is proposed)
+- Provide the expected response (when 2xx and no expected value given — enables diff analysis)
+- Provide server logs (when signals 1–3 all failed)
+- Retry with a fresh token (on 401/403) or modified headers (on 406/415)
 </Steps>
 
 <Tool_Usage>
 - `Bash` for executing the cURL and any follow-up shell commands
-- `Task(subagent_type="tracer", ...)` — primary tracing mechanism for Step 3; pass the cURL response + extracted signals via `@handoff-in`; consume the returned trace chain and ranked hypotheses
+- `Read`/`Grep` for inline tracing of grade-1 signals (direct stack-trace file:line, 404 route-registration check) — no agent dispatch
+- `Task(subagent_type="tracer", ...)` — Step 3 tracing mechanism for grade-2-or-lower signals; pass the cURL response + extracted signals via `@handoff-in`; consume the returned trace chain and ranked hypotheses
 - `Task(subagent_type="reviewer", ...)` (optional) when a proposed fix benefits from severity-rated review (see Step 4)
-- `AskUserQuestion` at decision points (network retry, short-circuit cases, missing info, follow-up actions)
+- `AskUserQuestion` at decision points (network retry, short-circuit cases, missing info) — NOT for end-of-report follow-ups, which are offered in prose
 </Tool_Usage>
 
 <Examples>
-**Example 1 — 500 with stack trace:**
+**Example 1 — 500 with stack trace (grade 1, inline):**
 User pastes a cURL that returns `500 Internal Server Error` with a stack trace pointing to `src/services/billing.ts:204`.
-Flow: Step 1 runs cURL → response has stack trace (signal 1) → Read `src/services/billing.ts:200-220` → find division by zero on line 204 → report What/Where/Why → propose 2 fix options.
+Flow: Step 1 runs cURL → response has stack trace (signal 1, grade 1) → no tracer dispatch → Read `src/services/billing.ts:200-220` → find division by zero on line 204 → report What/Where/Why → propose 2 fix options, follow-ups offered in prose.
 
-**Example 2 — 404 short-circuit:**
+**Example 2 — 404 short-circuit (inline):**
 User: "/curl-debug curl https://api.example.com/v2/orders/123"
-Flow: Step 1 runs → 404 → short-circuit: check route registration → grep `'/v2/orders'` → find handler registered as `/v1/orders` → report mismatch → suggest registering v2 alias.
+Flow: Step 1 runs → 404 → short-circuit: check route registration inline → grep `'/v2/orders'` → find handler registered as `/v1/orders` → report mismatch → suggest registering v2 alias.
 
-**Example 3 — non-trivial fix + reviewer delegation:**
-User pastes a cURL that returns wrong data on a complex endpoint.
-Flow: Step 1-3 identify a 30-line refactor needed in `src/handlers/order.ts` → Step 4 produces fix suggestion → propose delegating review to the `reviewer` agent via Task → reviewer returns severity-rated findings → user picks fix to apply.
+**Example 3 — indirect signals + reviewer delegation (tracer path):**
+User pastes a cURL that returns wrong data on a complex endpoint (2xx, no stack trace — grade-2 signals with competing hypotheses).
+Flow: Step 1-2 extract indirect signals → Step 3 dispatches `tracer`, which returns a ranked hypothesis table pointing to a 30-line refactor needed in `src/handlers/order.ts` → Step 4 produces fix suggestion → propose delegating review to the `reviewer` agent via Task → reviewer returns severity-rated findings → user picks fix to apply.
 </Examples>
 
 <Final_Checklist>
 - Did I actually run the cURL?
 - Did I follow signal priority (highest available signal first)?
+- Did I route Step 3 by signal grade (inline Read/Grep for grade-1/404; tracer dispatch otherwise)?
 - Did I stop at the halt condition (What / Where / Why all answered)?
 - Did I avoid applying fixes (present options only)?
+- Did I offer follow-ups as prose at the end of the report (no AskUserQuestion menu)?
 - For non-trivial fixes: did I consider delegating to the `reviewer` agent?
 - Did I cite file:line in the report?
 </Final_Checklist>
