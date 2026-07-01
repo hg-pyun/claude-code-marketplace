@@ -1,0 +1,9 @@
+{
+  "name": "buddy",
+  "description": "Scaffold plugin — entrypoints to be authored",
+  "version": "2026.07.02",
+  "author": { "name": "hg-pyun" },
+  "settings": {
+    "language": "Korean"
+  }
+}

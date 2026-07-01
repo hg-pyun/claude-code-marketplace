@@ -5,10 +5,20 @@
   },
   "metadata": {
     "description": "Personal Claude Code plugin marketplace by hg-pyun",
-    "version": "2026.05.23",
+    "version": "2026.07.02",
     "pluginRoot": "./plugins"
   },
   "plugins": [
+    {
+      "name": "buddy",
+      "source": "./plugins/buddy",
+      "description": "Scaffold plugin — entrypoints to be authored",
+      "version": "2026.07.02",
+      "keywords": [
+        "scaffold",
+        "template"
+      ]
+    },
     {
       "name": "dev-tools",
       "source": "./plugins/dev-tools",
