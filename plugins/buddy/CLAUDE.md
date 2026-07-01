@@ -9,7 +9,7 @@ How agents, skills, and commands *operate* is self-documented in their own sourc
 ```
 plugins/buddy/
 ├── .claude-plugin/plugin.json
-├── skills/deep-interview/SKILL.md   # Socratic maieutic design interview
+├── skills/socratic-interview/SKILL.md   # Socratic maieutic design interview
 ├── skills/grok-codebase/SKILL.md    # predict-then-verify + explain-back codebase reader
 ├── README.md         # end-user guide
 └── CLAUDE.md         # this file
@@ -19,7 +19,7 @@ plugins/buddy/
 
 buddy ships two skills, both self-contained in the main conversation, dispatching to no
 sub-agents. No commands yet.
-- **`deep-interview`** — a Socratic maieutic design interview that asks one question at a
+- **`socratic-interview`** — a Socratic maieutic design interview that asks one question at a
   time so the developer makes the structural decisions themselves (never hands over a
   finished design).
 - **`grok-codebase`** — a reading partner for unfamiliar code that makes the developer

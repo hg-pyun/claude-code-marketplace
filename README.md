@@ -2,7 +2,7 @@
 
 > Personal Claude Code plugin marketplace — `hg-pyun-plugins`.
 
-A static GitHub-hosted marketplace with three plugins: **`buddy`** (a Socratic "thinking partner" — its `/deep-interview` draws out your own design decisions), **`dev-tools`** (multi-agent orchestration, code review, git/GitHub, debugging), and **`linear-tools`** (Linear ticket enrichment via MCP).
+A static GitHub-hosted marketplace with three plugins: **`buddy`** (a Socratic "thinking partner" — its `/socratic-interview` draws out your own design decisions), **`dev-tools`** (multi-agent orchestration, code review, git/GitHub, debugging), and **`linear-tools`** (Linear ticket enrichment via MCP).
 
 ---
 
@@ -29,7 +29,7 @@ Install only the plugins you need; each is independently versioned.
 
 | Plugin | Description | Docs |
 |--------|-------------|------|
-| **buddy** | A Socratic "thinking partner" — `/deep-interview` asks one question at a time so you make the design decisions yourself. | [README](plugins/buddy/README.md) |
+| **buddy** | A Socratic "thinking partner" — `/socratic-interview` asks one question at a time so you make the design decisions yourself. | [README](plugins/buddy/README.md) |
 | **dev-tools** | Multi-agent dev toolkit — 16 specialist agents and 10 entrypoints: orchestration (`/autopilot`, `/ralplan`, `/ralph`, `/team`), review & debugging (`/code-review`, `/curl-debug`), git & GitHub (`/git-commit`, `/github-pr`, `/git-rebase-stack`), setup (`/install-statusline`). | [README](plugins/dev-tools/README.md) · [CLAUDE](plugins/dev-tools/CLAUDE.md) |
 | **linear-tools** | Interview-driven Linear ticket enrichment — `/enrich-ticket` writes a structured ticket body back via the Linear MCP. | [README](plugins/linear-tools/README.md) |
 

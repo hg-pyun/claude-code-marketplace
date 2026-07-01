@@ -4,7 +4,7 @@
 
 ## 30-second picture
 - **What this is**: `hg-pyun-plugins`, a personal Claude Code plugin marketplace (static GitHub repo, MIT). It ships **3 plugins**:
-  - `buddy` — a Socratic "thinking partner": its `/deep-interview` skill asks one question at a time so you make the design decisions yourself.
+  - `buddy` — a Socratic "thinking partner": its `/socratic-interview` skill asks one question at a time so you make the design decisions yourself.
   - `dev-tools` — 16 specialist agents (4 lanes: Build/Analysis · Review · Domain · Coordination) + orchestration / review / debugging / git+GitHub skills.
   - `linear-tools` — focused Linear ticket workflow (`/enrich-ticket`).
 - **Where things live**: plugin source under `plugins/<name>/`; the catalog in `.claude-plugin/marketplace.json`; the local health gate `scripts/validate.sh`; the new-plugin scaffold in `templates/plugin/`; the local cross-skill hand-off workspace `.dt-handoff/<slug>/` (gitignored).
@@ -20,7 +20,7 @@
 claude-code-marketplace/
 ├── .claude-plugin/marketplace.json   # Catalog (3 entries)
 ├── plugins/
-│   ├── buddy/                        # skills/ (deep-interview) README.md CLAUDE.md — Socratic thinking-partner
+│   ├── buddy/                        # skills/ (socratic-interview, grok-codebase) README.md CLAUDE.md — Socratic thinking-partner
 │   │   └── .claude-plugin/plugin.json
 │   ├── dev-tools/                    # agents/ (16) commands/ skills/ scripts/ README.md CLAUDE.md
 │   │   └── .claude-plugin/plugin.json

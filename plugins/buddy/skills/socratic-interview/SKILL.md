@@ -1,5 +1,5 @@
 ---
-name: deep-interview
+name: socratic-interview
 description: >
   Socratic maieutic design interview, driven by structured multiple-choice questions. When a
   developer brings a vague idea, feature, or design problem, sharpen it into clear decisions by

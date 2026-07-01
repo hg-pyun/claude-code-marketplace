@@ -1,7 +1,7 @@
 {
   "name": "buddy",
   "description": "Thinking-partner skills that keep the pen in your hand: a Socratic design interview and a predict-then-verify codebase reader",
-  "version": "2026.07.02.3",
+  "version": "2026.07.02.4",
   "author": { "name": "hg-pyun" },
   "settings": {
     "language": "Korean"

@@ -3,7 +3,7 @@
 buddy is a thinking partner that helps you think for yourself. Its two skills keep the pen
 in your hand at two different moments:
 
-- **`deep-interview`** — a Socratic maieutic design interview: instead of handing you a
+- **`socratic-interview`** — a Socratic maieutic design interview: instead of handing you a
   finished design, it asks one question at a time until you've decomposed the problem,
   weighed the trade-offs, and made the structural decisions yourself.
 - **`grok-codebase`** — a predict-then-verify reading partner for unfamiliar code: instead
@@ -27,7 +27,7 @@ So instead of handing over finished answers, buddy asks the questions, illuminat
 
 | Trigger | Skill / Command | What it does |
 |---------|-----------------|--------------|
-| "산파법", "socratic", "deep interview", "interview me to think", "설계 같이 고민해줘" | `deep-interview` | Asks one question at a time — never handing over the answer — so you decompose the problem, weigh the trade-offs, and make the design decisions yourself. Output: "the decisions you made, and why." |
+| "산파법", "socratic", "deep interview", "interview me to think", "설계 같이 고민해줘" | `socratic-interview` | Asks one question at a time — never handing over the answer — so you decompose the problem, weigh the trade-offs, and make the design decisions yourself. Output: "the decisions you made, and why." |
 | "grok this code", "코드 이해 도와줘", "낯선 코드 파악 같이 해줘", "코드 같이 읽자" | `grok-codebase` | Makes you *predict* what unfamiliar code does before revealing the real code — the prediction→reality gap is the lesson — and *explain back* the core spots in your own words. Output: "the mental model you built, and what you now understand that you didn't." |
 
 ## Settings
