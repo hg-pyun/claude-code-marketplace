@@ -12,11 +12,15 @@
     {
       "name": "buddy",
       "source": "./plugins/buddy",
-      "description": "Scaffold plugin — entrypoints to be authored",
-      "version": "2026.07.02",
+      "description": "Socratic maieutic design interview that asks the questions so you make the design decisions yourself",
+      "version": "2026.07.02.1",
       "keywords": [
-        "scaffold",
-        "template"
+        "socratic",
+        "maieutics",
+        "interview",
+        "design",
+        "thinking-partner",
+        "mentoring"
       ]
     },
     {

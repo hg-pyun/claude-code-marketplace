@@ -9,17 +9,17 @@ How agents, skills, and commands *operate* is self-documented in their own sourc
 ```
 plugins/buddy/
 ├── .claude-plugin/plugin.json
-├── skills/EXAMPLE/    # placeholder skill scaffold — replace with real entrypoint
-├── commands/EXAMPLE.md  # placeholder command scaffold — replace with real entrypoint
+├── skills/deep-interview/SKILL.md   # Socratic maieutic design interview
 ├── README.md         # end-user guide
 └── CLAUDE.md         # this file
 ```
 
 ## Agent / skill / command boundary
 
-This plugin is a **scaffold** — no real entrypoints yet. The `skills/EXAMPLE/` and
-`commands/EXAMPLE.md` files are placeholders in the 9-section house style; replace or
-delete them when authoring the first real skill/command.
+buddy ships one skill: **`deep-interview`** — a Socratic maieutic design interview
+that asks one question at a time so the developer makes the structural decisions
+themselves (it never hands over a finished design). It runs self-contained in the main
+conversation and dispatches to no sub-agents. No commands yet.
 
 ## Adding a skill or command
 

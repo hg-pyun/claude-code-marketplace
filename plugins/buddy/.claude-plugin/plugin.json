@@ -1,7 +1,7 @@
 {
   "name": "buddy",
-  "description": "Scaffold plugin — entrypoints to be authored",
-  "version": "2026.07.02",
+  "description": "Socratic maieutic design interview that asks the questions so you make the design decisions yourself",
+  "version": "2026.07.02.1",
   "author": { "name": "hg-pyun" },
   "settings": {
     "language": "Korean"
