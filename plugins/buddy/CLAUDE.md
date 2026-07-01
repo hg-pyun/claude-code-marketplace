@@ -10,16 +10,24 @@ How agents, skills, and commands *operate* is self-documented in their own sourc
 plugins/buddy/
 ├── .claude-plugin/plugin.json
 ├── skills/deep-interview/SKILL.md   # Socratic maieutic design interview
+├── skills/grok-codebase/SKILL.md    # predict-then-verify + explain-back codebase reader
 ├── README.md         # end-user guide
 └── CLAUDE.md         # this file
 ```
 
 ## Agent / skill / command boundary
 
-buddy ships one skill: **`deep-interview`** — a Socratic maieutic design interview
-that asks one question at a time so the developer makes the structural decisions
-themselves (it never hands over a finished design). It runs self-contained in the main
-conversation and dispatches to no sub-agents. No commands yet.
+buddy ships two skills, both self-contained in the main conversation, dispatching to no
+sub-agents. No commands yet.
+- **`deep-interview`** — a Socratic maieutic design interview that asks one question at a
+  time so the developer makes the structural decisions themselves (never hands over a
+  finished design).
+- **`grok-codebase`** — a reading partner for unfamiliar code that makes the developer
+  *predict* a spot before revealing the real code, and *explain back* the core spots, so
+  the mental model gets built in their head (never summarized for them). It deliberately
+  relaxes buddy's "the developer decides everything" principle at one point — the partner
+  judges which mode (predict vs explain-back) fits each spot by difficulty — an accepted
+  trade-off documented in the skill's `<Design_Note_Accepted_Tradeoffs>`.
 
 ## Adding a skill or command
 

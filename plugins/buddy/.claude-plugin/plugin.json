@@ -1,7 +1,7 @@
 {
   "name": "buddy",
-  "description": "Socratic maieutic design interview that asks the questions so you make the design decisions yourself",
-  "version": "2026.07.02.2",
+  "description": "Thinking-partner skills that keep the pen in your hand: a Socratic design interview and a predict-then-verify codebase reader",
+  "version": "2026.07.02.3",
   "author": { "name": "hg-pyun" },
   "settings": {
     "language": "Korean"
