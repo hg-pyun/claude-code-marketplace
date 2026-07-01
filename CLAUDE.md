@@ -3,7 +3,8 @@
 > **Scope.** This file is the maintainer's guide to **the repository** (`hg-pyun-plugins`): the catalog, versioning, validation, and the repo-wide authoring conventions a maintainer enforces. It is **not** a manual for how the plugins *operate* — that is self-documented in each plugin's source (`plugins/<name>/agents/*.md`, `skills/*/SKILL.md`) and the artifact hand-off contract in `scripts/validate.sh`. Keep plugin-operation detail out of this file.
 
 ## 30-second picture
-- **What this is**: `hg-pyun-plugins`, a personal Claude Code plugin marketplace (static GitHub repo, MIT). It ships **2 plugins**:
+- **What this is**: `hg-pyun-plugins`, a personal Claude Code plugin marketplace (static GitHub repo, MIT). It ships **3 plugins**:
+  - `buddy` — a Socratic "thinking partner": its `/deep-interview` skill asks one question at a time so you make the design decisions yourself.
   - `dev-tools` — 16 specialist agents (4 lanes: Build/Analysis · Review · Domain · Coordination) + orchestration / review / debugging / git+GitHub skills.
   - `linear-tools` — focused Linear ticket workflow (`/enrich-ticket`).
 - **Where things live**: plugin source under `plugins/<name>/`; the catalog in `.claude-plugin/marketplace.json`; the local health gate `scripts/validate.sh`; the new-plugin scaffold in `templates/plugin/`; the local cross-skill hand-off workspace `.dt-handoff/<slug>/` (gitignored).
@@ -17,8 +18,10 @@
 ## Directory layout
 ```
 claude-code-marketplace/
-├── .claude-plugin/marketplace.json   # Catalog (2 entries)
+├── .claude-plugin/marketplace.json   # Catalog (3 entries)
 ├── plugins/
+│   ├── buddy/                        # skills/ (deep-interview) README.md CLAUDE.md — Socratic thinking-partner
+│   │   └── .claude-plugin/plugin.json
 │   ├── dev-tools/                    # agents/ (16) commands/ skills/ scripts/ README.md CLAUDE.md
 │   │   └── .claude-plugin/plugin.json
 │   └── linear-tools/                 # commands/ README.md CLAUDE.md
@@ -120,7 +123,7 @@ Catalog with `name`, `owner.name`, `metadata` (`description`, `version`, `plugin
 ## Validation
 `scripts/validate.sh` is the single source of truth for local marketplace health.
 
-**Default lane** — `bash scripts/validate.sh` runs: (0) `marketplace.json` valid JSON; (1) plugin count == 2; (2) orphan check (entry↔directory); (3) per-plugin version sync; (4) `claude plugin validate --strict .` per plugin; (5) canonical version format; (6) soft 9-section presence on every `SKILL.md` / command md (README, CLAUDE.md & agents excluded). Exit `0` = PASS.
+**Default lane** — `bash scripts/validate.sh` runs: (0) `marketplace.json` valid JSON; (1) plugin count == 3; (2) orphan check (entry↔directory); (3) per-plugin version sync; (4) `claude plugin validate --strict .` per plugin; (5) canonical version format; (6) soft 9-section presence on every `SKILL.md` / command md (README, CLAUDE.md & agents excluded). Exit `0` = PASS.
 
 **Descriptors lane** (opt-in; validates hand-off artifact descriptors — the schema lives in the `scripts/validate.sh` header):
 ```shell
