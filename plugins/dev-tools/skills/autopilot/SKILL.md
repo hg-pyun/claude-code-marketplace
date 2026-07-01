@@ -19,7 +19,7 @@ Autopilot does NOT do the work itself. It is a **conductor**: it sequences sibli
 <Do_Not_Use_When>
 - The user wants to brainstorm only — answer directly.
 - The user wants a single bug fix or a quick edit — delegate to `executor`, or work directly.
-- The user wants only requirements capture with no planning or execution — that is now a standalone concern; capture the spec first, then run autopilot.
+- The user wants only requirements capture with no planning or execution — that is now a standalone concern; run `/interview` to capture the spec first, then run autopilot.
 - The user wants planning without execution — use `ralplan`.
 - The user wants automatic commit/PR — refuse; autopilot stops at "ready for commit".
 - The user has not specified scope at all ("just improve everything") — refuse and ask for a concrete target; Phase 1 intake needs a real idea to analyze.
@@ -93,9 +93,9 @@ Each phase is declarative: **goal · delegate · input→output · success / fai
 - Announce the pipeline in `$LANGUAGE`, marking each phase RUN or SKIPPED.
 
 ### Phase 1 — Intake (`analyst`)
-- **Goal**: turn the idea into a vetted spec, non-interactively. (Interactive requirements interviewing is a standalone concern outside autopilot; supply a pre-written `spec.md` when a deep interview is warranted and Phase 1 will reuse it.)
+- **Goal**: turn the idea into a vetted spec, non-interactively. (Interactive requirements interviewing is a standalone concern outside autopilot; run `/interview` to produce a pre-written `spec.md` when a deep interview is warranted and Phase 1 will reuse it.)
 - **Delegate**: `Task(subagent_type="analyst", …)` with the idea passed as the intake payload (per the `@handoff-in` contract). `analyst` writes a scored requirement decomposition to `artifacts/ask/analyst-<ISO8601>.md` and returns per-dimension **clarity** (Goal/Constraints/Criteria/Context) plus enumerated assumptions and gaps.
-- **Gate**: compute ambiguity = `1 − weighted clarity`. Ambiguity ≤ `--threshold` (default 0.2) → autopilot writes `.dt-handoff/<slug>/spec.md` from the decomposition (requirements, assumptions, open questions), descriptor `producer: analyst`, `Status: PASSED`. Ambiguity > threshold → stop `PHASE1_AMBIGUOUS`: report the top gaps and ask the user to supply a clearer idea or a pre-written `spec.md` (do NOT interview in-loop).
+- **Gate**: compute ambiguity = `1 − weighted clarity`. Ambiguity ≤ `--threshold` (default 0.2) → autopilot writes `.dt-handoff/<slug>/spec.md` from the decomposition (requirements, assumptions, open questions), descriptor `producer: analyst`, `Status: PASSED`. Ambiguity > threshold → stop `PHASE1_AMBIGUOUS`: report the top gaps and ask the user to supply a clearer idea or a pre-written `spec.md` — e.g. via `/interview` (do NOT interview in-loop).
 - **Output**: `.dt-handoff/<slug>/spec.md`.
 - **Success**: `spec.md` written, `Status: PASSED`. **Fail**: `PHASE1_AMBIGUOUS` (ambiguity above threshold) or the idea is unparseable → abort with the gaps surfaced.
 - Skip if `spec.md` already present (resume rule).
@@ -189,7 +189,7 @@ security-auditor reports 2 MAJOR findings (hardcoded header name, missing rate-l
 <Escalation_And_Stop_Conditions>
 Single source for terminal statuses. Every terminal path runs Wrap-up cleanup (`cleanup.sh --slug=<slug>`) before exiting.
 - All phases complete + Phase 5 gates clean + regression GREEN → report and stop.
-- `PHASE1_AMBIGUOUS` — `analyst` intake leaves ambiguity (`1 − weighted clarity`) above `--threshold`; surface the gaps and request a clearer idea or a pre-written spec.
+- `PHASE1_AMBIGUOUS` — `analyst` intake leaves ambiguity (`1 − weighted clarity`) above `--threshold`; surface the gaps and request a clearer idea or a pre-written spec (e.g. via `/interview`).
 - `PHASE2_NO_CONSENSUS` — ralplan consensus not reached after 5 iterations.
 - `PHASE3_BLOCKED` — ralph/team escalates or hits cap; do not advance to Phase 4.
 - `PHASE4_QA_STUCK` — verifier `REJECT`, or same failing checks persist 3 cycles.

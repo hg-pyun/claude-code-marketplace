@@ -36,6 +36,7 @@ Within `dev-tools` there is no `core` sub-plugin and no cross-plugin invocation 
 
 | Entrypoint | Type | One-liner |
 |------------|------|-----------|
+| `/interview` | skill | Clarify a vague request into a pipeline-ready `spec.md` via `AskUserQuestion` (front door to the pipeline). |
 | `/autopilot` | skill | End-to-end pipeline: intake → plan → execute → QA → validate. |
 | `/ralplan` | skill | Candidate-panel consensus: `architect`×N generate distinct approaches, a separated `critic` attacks each, a distinct `critic` synthesizes a ranked ADR. Writes `plan.md`. |
 | `/ralph` | skill | PRD-driven execution loop with TDD discipline; independent stories run as pipelined waves. |
@@ -72,6 +73,7 @@ When to pick what:
 
 | Situation | Skill |
 |-----------|-------|
+| "My idea is vague — pin down the requirements first" | `/interview` |
 | "I have an idea, take it to ready-for-review" | `/autopilot` |
 | "I have a spec, give me a vetted plan" | `/ralplan` |
 | "Execute this plan, one story at a time, TDD-strict" | `/ralph` |
@@ -134,6 +136,14 @@ Task(subagent_type="security-auditor", prompt="...")
 
 ## Skills & commands
 
+### Requirements
+
+#### `/interview [--slug=<slug>] [--threshold=<0.0-1.0>] [--lang=<value>]`
+
+Interactive requirements-clarification interview. Delegates to `analyst` to surface ambiguities, hidden assumptions, and gaps with clarity scoring, then resolves each with the user via `AskUserQuestion` — concrete candidate answers, a marked `(Recommended)` default where one clearly fits, independent clarifications batched into one call — until residual ambiguity (`1 − weighted clarity`) drops to `--threshold` (default `0.2`). Emits a clarified `spec.md` (`## Goal` / `## Requirements` / `## Constraints` / `## Acceptance Criteria`): in slug context it writes `.dt-handoff/<slug>/spec.md` with descriptor frontmatter (`producer: interview`) for `/autopilot` and `/ralplan` to consume; free-standing it presents the spec inline.
+
+This is the interactive front door that `/autopilot`'s non-interactive Phase 1 intake omits — run it first when an idea is too vague, then hand the spec to the pipeline. For sharpening your *own* thinking without being handed answers, use `buddy:socratic-interview` instead.
+
 ### Orchestration
 
 #### `/autopilot [--exec=ralph|team] [--resume=auto|fresh] [--no-prompt] [--deliberate] [--full-validation] [--max-qa-cycles=<n>] [--threshold=<0.0-1.0>]`
@@ -148,7 +158,7 @@ End-to-end 5-phase pipeline from idea to code-ready state. Sequences:
 
 Smart-skip: existing `spec.md` skips Phase 1; existing `plan.md` skips Phases 1–2. Skip is governed by `--resume` (default `auto`): the detected resumption point is confirmed once via `AskUserQuestion` unless `--no-prompt`; `--resume=fresh` restarts at Phase 1. Stops at "ready for commit".
 
-Phase 1 intake is **non-interactive**: `analyst` decomposes the idea and autopilot writes `spec.md` when ambiguity (`1 − weighted clarity`) ≤ `--threshold` (default `0.2`), else stops `PHASE1_AMBIGUOUS` with the gaps surfaced. Interactive requirements interviewing is a standalone concern outside dev-tools — supply a pre-written `spec.md` when a deep interview is warranted and Phase 1 reuses it.
+Phase 1 intake is **non-interactive**: `analyst` decomposes the idea and autopilot writes `spec.md` when ambiguity (`1 − weighted clarity`) ≤ `--threshold` (default `0.2`), else stops `PHASE1_AMBIGUOUS` with the gaps surfaced. Interactive requirements interviewing is a separate upstream step — run `/interview` to resolve the gaps into a clarified `spec.md`, and Phase 1 reuses it.
 
 #### `/ralplan [--tier=LOW|MEDIUM|HIGH] [--interactive] [--deliberate] [--from-spec=<path>] [--lang=<value>]`
 
@@ -245,6 +255,7 @@ All orchestration skills key their smart-skip logic on `.dt-handoff/<slug>/spec.
 
 | Asset | Uses `$LANGUAGE` for | Per-call override |
 |-------|---------------------|-------------------|
+| `interview` | Interview questions + clarified `spec.md` content (structural headers stay English) | `--lang=<value>` |
 | `git-commit` | Commit subject + body | `--lang=<value>` |
 | `github-pr` | PR description body | `--lang=<value>` |
 

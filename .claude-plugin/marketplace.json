@@ -30,7 +30,7 @@
       "name": "dev-tools",
       "source": "./plugins/dev-tools",
       "description": "Multi-agent dev toolkit: orchestration, code review, git/GitHub workflows, and debugging",
-      "version": "2026.07.02",
+      "version": "2026.07.02.1",
       "keywords": [
         "git",
         "commit",
@@ -38,6 +38,9 @@
         "rebase",
         "stacked-pr",
         "spec",
+        "interview",
+        "clarify",
+        "requirements",
         "planning",
         "debug",
         "curl",
