@@ -1,12 +1,12 @@
 ---
 name: autopilot
-description: End-to-end 5-phase pipeline from idea to code-ready state — deep-interview → ralplan → ralph/team → verifier-gated QA → multi-perspective validation. Artifacts land in .dt-handoff/<slug>/. Auto commit/PR PROHIBITED. TRIGGER on "/autopilot", "autopilot", "build me", "create me", "make me", "I want a/an". DO NOT TRIGGER for brainstorming, single bug fixes, or quick changes.
+description: End-to-end 5-phase pipeline from idea to code-ready state — analyst intake → ralplan → ralph/team → verifier-gated QA → multi-perspective validation. Artifacts land in .dt-handoff/<slug>/. Auto commit/PR PROHIBITED. TRIGGER on "/autopilot", "autopilot", "build me", "create me", "make me", "I want a/an". DO NOT TRIGGER for brainstorming, single bug fixes, or quick changes.
 ---
 
 <Purpose>
 Take a product idea from one-sentence intent to a code-ready state through five sequential phases: a vetted spec, an approved plan, an implemented change set, a verifier-gated test suite, and a multi-perspective validation pass — in a single skill invocation.
 
-Autopilot does NOT do the work itself. It is a **conductor**: it sequences sibling skills (`deep-interview`, `ralplan`, `ralph` or `team`) and agent passes (`test-engineer`, `executor`, `verifier`, plus the Phase 5 panel), reads each phase's artifact, gates on the next phase's success criterion, and stops at "ready for commit". Commit and PR creation remain the user's call.
+Autopilot does NOT do the work itself. It is a **conductor**: it sequences sibling skills (`ralplan`, `ralph` or `team`) and agent passes (`analyst` for Phase 1 intake, then `test-engineer`, `executor`, `verifier`, plus the Phase 5 panel), reads each phase's artifact, gates on the next phase's success criterion, and stops at "ready for commit". Commit and PR creation remain the user's call.
 </Purpose>
 
 <Use_When>
@@ -19,10 +19,10 @@ Autopilot does NOT do the work itself. It is a **conductor**: it sequences sibli
 <Do_Not_Use_When>
 - The user wants to brainstorm only — answer directly.
 - The user wants a single bug fix or a quick edit — delegate to `executor`, or work directly.
-- The user wants only requirements capture — use `deep-interview`.
+- The user wants only requirements capture with no planning or execution — that is now a standalone concern; capture the spec first, then run autopilot.
 - The user wants planning without execution — use `ralplan`.
 - The user wants automatic commit/PR — refuse; autopilot stops at "ready for commit".
-- The user has not specified scope at all ("just improve everything") — route to `deep-interview` first to establish a target.
+- The user has not specified scope at all ("just improve everything") — refuse and ask for a concrete target; Phase 1 intake needs a real idea to analyze.
 </Do_Not_Use_When>
 
 <Why_This_Exists>
@@ -70,7 +70,7 @@ The conductor stays thin on purpose. The handoff mechanics (`@handoff-in`/`@hand
 | `--resume=auto\|fresh` | `auto` | `auto` skips completed phases from existing artifacts; `fresh` restarts at Phase 1. |
 | `--no-prompt` | off | Suppress the Phase 0 resume-confirmation `AskUserQuestion` (silent auto-skip). |
 | `--exec=ralph\|team` | auto-detect | Force the Phase 3 execution skill. |
-| `--threshold=<0.0–1.0>` | deep-interview default (0.2) | Forwarded to Phase 1 ambiguity gate. |
+| `--threshold=<0.0–1.0>` | `0.2` | Phase 1 intake ambiguity gate: max tolerated `1 − weighted clarity` from the `analyst` decomposition. |
 | `--deliberate` | off | Forwarded to Phase 2 `ralplan`. |
 | `--max-qa-cycles=<n>` | 5 | Cap Phase 4 iterations. |
 | `--full-validation` | off | Add the Phase 5 opt-in advisors (`critic`, `performance-analyst`, `doc-writer`). |
@@ -92,11 +92,12 @@ Each phase is declarative: **goal · delegate · input→output · success / fai
 - Probe resume artifacts (spec.md / plan.md / prd.json) and confirm the resumption point per the resume/skip rule (unless `--no-prompt`).
 - Announce the pipeline in `$LANGUAGE`, marking each phase RUN or SKIPPED.
 
-### Phase 1 — Expansion (`deep-interview`)
-- **Goal**: turn the idea into a vetted spec.
-- **Delegate**: `Skill("dev-tools:deep-interview", args="<idea> --threshold=<value>")`.
+### Phase 1 — Intake (`analyst`)
+- **Goal**: turn the idea into a vetted spec, non-interactively. (Interactive requirements interviewing is a standalone concern outside autopilot; supply a pre-written `spec.md` when a deep interview is warranted and Phase 1 will reuse it.)
+- **Delegate**: `Task(subagent_type="analyst", …)` with the idea passed as the intake payload (per the `@handoff-in` contract). `analyst` writes a scored requirement decomposition to `artifacts/ask/analyst-<ISO8601>.md` and returns per-dimension **clarity** (Goal/Constraints/Criteria/Context) plus enumerated assumptions and gaps.
+- **Gate**: compute ambiguity = `1 − weighted clarity`. Ambiguity ≤ `--threshold` (default 0.2) → autopilot writes `.dt-handoff/<slug>/spec.md` from the decomposition (requirements, assumptions, open questions), descriptor `producer: analyst`, `Status: PASSED`. Ambiguity > threshold → stop `PHASE1_AMBIGUOUS`: report the top gaps and ask the user to supply a clearer idea or a pre-written `spec.md` (do NOT interview in-loop).
 - **Output**: `.dt-handoff/<slug>/spec.md`.
-- **Success**: `Status: PASSED`. **Fail**: `EARLY_EXIT` / `HARD_CAP` with high residual ambiguity → ask the user to retry, lower threshold, or abort (`PHASE1_AMBIGUOUS`).
+- **Success**: `spec.md` written, `Status: PASSED`. **Fail**: `PHASE1_AMBIGUOUS` (ambiguity above threshold) or the idea is unparseable → abort with the gaps surfaced.
 - Skip if `spec.md` already present (resume rule).
 
 ### Phase 2 — Planning (`ralplan`)
@@ -140,10 +141,10 @@ Each phase is declarative: **goal · delegate · input→output · success / fai
 </Steps>
 
 <Tool_Usage>
-- **Skill**: `dev-tools:deep-interview` (P1), `dev-tools:ralplan` (P2), `dev-tools:ralph` or `dev-tools:team` (P3). One sub-skill per phase, sequential.
-- **Task**: `verifier` (P4 gate, always) + provenance-conditional `test-engineer` / `executor` (P4 loop); the Phase 5 panel in parallel (one message); `executor` + scoped `verifier` on the Phase 5 targeted path. Bare agent names — no plugin prefix.
-- **Read**: load `.dt-handoff/<slug>/*.md` and `prd.json` between phases.
-- **Write**: `autopilot-validation.md` (P5 consolidation), `events.jsonl` phase-boundary lines, `progress.txt` append.
+- **Skill**: `dev-tools:ralplan` (P2), `dev-tools:ralph` or `dev-tools:team` (P3). One sub-skill per phase, sequential.
+- **Task**: `analyst` (P1 intake); `verifier` (P4 gate, always) + provenance-conditional `test-engineer` / `executor` (P4 loop); the Phase 5 panel in parallel (one message); `executor` + scoped `verifier` on the Phase 5 targeted path. Bare agent names — no plugin prefix.
+- **Read**: load `.dt-handoff/<slug>/*.md` and `prd.json` between phases; load the `analyst` decomposition (`artifacts/ask/analyst-*.md`) to author `spec.md` in P1.
+- **Write**: `spec.md` (P1, from the `analyst` decomposition), `autopilot-validation.md` (P5 consolidation), `events.jsonl` phase-boundary lines, `progress.txt` append.
 - **Bash**: `mkdir -p` the artifact root at Setup; run test/build/lint for inter-phase checks; `cleanup.sh --slug=<slug>` at Wrap-up.
 - **AskUserQuestion**: confirm the resume point at Setup; ask about retries at a phase-failure decision point.
 - **Handoff contract** (single rule — do not re-spell per phase): when dispatching an agent that consumes a persisted artifact, include a `@handoff-in` reference (`kind`, `path`, and `contentHash`/`sizeBytes` per the protocol; inline the body only when `sizeBytes ≤ INLINE_MAX_BYTES`). Consume the returning `@handoff-out` block and route on its `verdict`. The `@handoff-in`/`@handoff-out` shapes, descriptor schema, `verdict` enum, and `INLINE_MAX_BYTES` are defined in the handoff protocol — mirrored in the `scripts/validate.sh` header. Phase 5 panel agents share this directive: "persist findings to `artifacts/ask/<agent>-<ISO8601>.md` with the descriptor frontmatter, then return an `@handoff-out` block; judgment agents set `verdict`, advisory agents set `verdict: null`; doc-writer's findings file is its only Write this invocation."
@@ -153,7 +154,7 @@ Each phase is declarative: **goal · delegate · input→output · success / fai
 <Examples>
 **Example 1 — fresh start, full pipeline**:
 User: `/autopilot "Linear webhook 처리 서비스 만들어줘"`
-Setup: no artifacts → create `.dt-handoff/linear-webhook/`, announce. Phase 1: deep-interview → `spec.md` (PASSED). Phase 2: ralplan → `plan.md` (pending approval; Metadata `Parallel workstreams: 2 (file-scope disjoint)`, risk MEDIUM) → `ralph`. Phase 3: ralph `--approver=defer --regression=defer` → 4 stories pass per-story verifier; report records the deferrals. Phase 4: fresh full-ralph + MEDIUM → cycle-1 audit deferred to the P5 panel; verifier full six-check `APPROVE` (the deferred regression gate), exit cycle 1. Phase 5 (default gates + read-only test-engineer audit): reviewer APPROVE, security-auditor clean, architect clean, audit finds no gaps → write `autopilot-validation.md`. Wrap-up: cleanup, "Ready for commit — /git-commit then /github-pr." STOP.
+Setup: no artifacts → create `.dt-handoff/linear-webhook/`, announce. Phase 1: analyst intake → ambiguity 0.15 ≤ 0.2 → write `spec.md` (PASSED). Phase 2: ralplan → `plan.md` (pending approval; Metadata `Parallel workstreams: 2 (file-scope disjoint)`, risk MEDIUM) → `ralph`. Phase 3: ralph `--approver=defer --regression=defer` → 4 stories pass per-story verifier; report records the deferrals. Phase 4: fresh full-ralph + MEDIUM → cycle-1 audit deferred to the P5 panel; verifier full six-check `APPROVE` (the deferred regression gate), exit cycle 1. Phase 5 (default gates + read-only test-engineer audit): reviewer APPROVE, security-auditor clean, architect clean, audit finds no gaps → write `autopilot-validation.md`. Wrap-up: cleanup, "Ready for commit — /git-commit then /github-pr." STOP.
 
 **Example 2 — resume from existing plan**:
 User: `/autopilot "auth middleware 리팩터"` → Setup detects yesterday's `plan.md`; AskUserQuestion → "Resume". Phases 1–2 SKIPPED. Phase 3 runs `ralph` from the plan. Phases 4–5 run. Report notes "Phases 1–2 skipped (plan.md from 2026-05-21 reused)."
@@ -188,7 +189,7 @@ security-auditor reports 2 MAJOR findings (hardcoded header name, missing rate-l
 <Escalation_And_Stop_Conditions>
 Single source for terminal statuses. Every terminal path runs Wrap-up cleanup (`cleanup.sh --slug=<slug>`) before exiting.
 - All phases complete + Phase 5 gates clean + regression GREEN → report and stop.
-- `PHASE1_AMBIGUOUS` — deep-interview hits hard cap without reaching threshold.
+- `PHASE1_AMBIGUOUS` — `analyst` intake leaves ambiguity (`1 − weighted clarity`) above `--threshold`; surface the gaps and request a clearer idea or a pre-written spec.
 - `PHASE2_NO_CONSENSUS` — ralplan consensus not reached after 5 iterations.
 - `PHASE3_BLOCKED` — ralph/team escalates or hits cap; do not advance to Phase 4.
 - `PHASE4_QA_STUCK` — verifier `REJECT`, or same failing checks persist 3 cycles.
@@ -200,7 +201,7 @@ Single source for terminal statuses. Every terminal path runs Wrap-up cleanup (`
 ## Phase Artifact Matrix
 | Phase | Sub-skill / Agent | Input | Output | Skip / Exit |
 |-------|-------------------|-------|--------|-------------|
-| 1 Expansion | `deep-interview` | idea | `spec.md` | spec.md present |
+| 1 Intake | `analyst` | idea | `spec.md` | spec.md present |
 | 2 Planning | `ralplan` | spec.md | `plan.md` | plan.md Status valid |
 | 3 Execution | `ralph` \| `team` | plan.md | `prd.json` + code | all stories pass (ralph defers batch approval/regression to P4–P5; team: reviewer APPROVE) |
 | 4 QA | `verifier` gate (+ provenance-conditional `test-engineer` + `executor`) | code + prd.json | `verifier-qa-*.md` (+ new tests) | verifier `APPROVE` |

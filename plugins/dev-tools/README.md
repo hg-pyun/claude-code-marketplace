@@ -36,9 +36,7 @@ Within `dev-tools` there is no `core` sub-plugin and no cross-plugin invocation 
 
 | Entrypoint | Type | One-liner |
 |------------|------|-----------|
-| `/autopilot` | skill | End-to-end pipeline: interview → plan → execute → QA → validate. |
-| `/deep-interview` | skill | Socratic interview with ambiguity scoring. Writes `spec.md`. |
-| `/interview` | skill | Lightweight in-depth interview (no scoring/agents). Writes `spec.md`. |
+| `/autopilot` | skill | End-to-end pipeline: intake → plan → execute → QA → validate. |
 | `/ralplan` | skill | Candidate-panel consensus: `architect`×N generate distinct approaches, a separated `critic` attacks each, a distinct `critic` synthesizes a ranked ADR. Writes `plan.md`. |
 | `/ralph` | skill | PRD-driven execution loop with TDD discipline; independent stories run as pipelined waves. |
 | `/team` | skill | 5-stage parallel multi-agent orchestration. |
@@ -58,7 +56,7 @@ Korean trigger phrases (e.g. `"커밋해줘"`, `"PR 만들어줘"`, `"끝까지 
 The four orchestration skills form a single, resumable lifecycle:
 
 ```
-Phase 1  Expansion    deep-interview   → spec.md
+Phase 1  Intake       analyst          → spec.md
 Phase 2  Planning      ralplan          → plan.md  (Status: pending approval)
 Phase 3  Execution     ralph | team     → prd.json + code + progress
 Phase 4  QA gate       test-engineer + executor + verifier   (≤ 5 cycles)
@@ -66,7 +64,7 @@ Phase 5  Validation    reviewer + security-auditor + architect   (default gates)
                        └─ --full-validation adds critic + performance-analyst + doc-writer
 ```
 
-`/autopilot` is the conductor that sequences all five phases in one invocation and, under `--resume=auto` (default), auto-skips phases whose artifacts already exist on disk — resuming yesterday's interview takes one command.
+`/autopilot` is the conductor that sequences all five phases in one invocation and, under `--resume=auto` (default), auto-skips phases whose artifacts already exist on disk — resuming yesterday's run takes one command.
 
 **Hard stop at "ready for commit".** Every orchestration skill — `ralph`, `team`, `autopilot` — refuses to commit, push, or open a PR. Those moves are explicit user gestures via `/git-commit` and `/github-pr`. The pipeline puts the change on disk and tells you it's done; you decide what ships.
 
@@ -75,8 +73,6 @@ When to pick what:
 | Situation | Skill |
 |-----------|-------|
 | "I have an idea, take it to ready-for-review" | `/autopilot` |
-| "Capture requirements — heavy, ambiguity-gated" | `/deep-interview` |
-| "Capture requirements — fast, conversational" | `/interview` |
 | "I have a spec, give me a vetted plan" | `/ralplan` |
 | "Execute this plan, one story at a time, TDD-strict" | `/ralph` |
 | "Execute this plan with parallel workstreams" | `/team` |
@@ -144,7 +140,7 @@ Task(subagent_type="security-auditor", prompt="...")
 
 End-to-end 5-phase pipeline from idea to code-ready state. Sequences:
 
-1. **Expansion** — `deep-interview` → `spec.md`
+1. **Intake** — `analyst` decomposition (ambiguity-gated) → `spec.md`
 2. **Planning** — `ralplan` → `plan.md` (`pending approval`)
 3. **Execution** — `ralph` (story waves; tail gates deferred to Phases 4–5 via `--approver=defer --regression=defer`) or `team` (parallel stages) → code + `prd.json` + `progress.txt`; routed on the plan's `Parallel workstreams` metadata
 4. **QA** — full `verifier` regression always; `test-engineer` coverage audit runs in cycle 1 only for team/resume/HIGH-tier provenance (otherwise it joins the Phase 5 panel read-only); up to `--max-qa-cycles` (default 5), with an early stop after 3 cycles of the same failing checks
@@ -152,17 +148,7 @@ End-to-end 5-phase pipeline from idea to code-ready state. Sequences:
 
 Smart-skip: existing `spec.md` skips Phase 1; existing `plan.md` skips Phases 1–2. Skip is governed by `--resume` (default `auto`): the detected resumption point is confirmed once via `AskUserQuestion` unless `--no-prompt`; `--resume=fresh` restarts at Phase 1. Stops at "ready for commit".
 
-#### `/deep-interview [topic] [--lang=<value>] [--threshold=<0.0-1.0>] [--max-rounds=<n>]`
-
-Socratic interview with mathematical ambiguity gating (default threshold `0.2`). Per-dimension scoring across **Goal / Constraints / Criteria / Context** runs inline every round; `analyst` is dispatched only at checkpoints (post-draft, pre-crystallize, scope shifts, stalls) with delta payloads. Round 0 establishes topology (auto-locked when a single component is detected); subsequent rounds target the weakest dimension. Brownfield codebase mapping goes to `explorer` (brownfield only — detection is inline); challenge modes (Contrarian / Simplifier / Ontologist) use the `critic` single-finding fast-path at preset round thresholds. Early exit is allowed at any round.
-
-Output: `.dt-handoff/<slug>/spec.md`. Refuses handoff until ambiguity ≤ threshold OR user explicitly opts out.
-
-#### `/interview [topic or file path] [--lang=<value>] [--max-rounds=<n>]`
-
-Lightweight, conversational counterpart to `deep-interview`. Asks non-obvious questions one at a time across **Goal / Scope / Technical Implementation / UI & UX / Concerns & Risks / Tradeoffs** — no ambiguity scoring, no topology lock, no agent dispatch. Accepts a free-text topic or a file path. Continues until the dimensions are covered or the user opts out (soft cap 12 rounds).
-
-Output: `.dt-handoff/<slug>/spec.md` (`Status: complete` or `draft` on early exit).
+Phase 1 intake is **non-interactive**: `analyst` decomposes the idea and autopilot writes `spec.md` when ambiguity (`1 − weighted clarity`) ≤ `--threshold` (default `0.2`), else stops `PHASE1_AMBIGUOUS` with the gaps surfaced. Interactive requirements interviewing is a standalone concern outside dev-tools — supply a pre-written `spec.md` when a deep interview is warranted and Phase 1 reuses it.
 
 #### `/ralplan [--tier=LOW|MEDIUM|HIGH] [--interactive] [--deliberate] [--from-spec=<path>] [--lang=<value>]`
 
@@ -222,7 +208,7 @@ Every orchestration skill writes under a single slug directory inside the **loca
 
 ```
 .dt-handoff/<slug>/
-├── spec.md              # deep-interview output (descriptor frontmatter; permanent)
+├── spec.md              # autopilot Phase 1 intake output, or user-supplied (descriptor frontmatter; permanent)
 ├── plan.md              # ralplan output (descriptor frontmatter; permanent)
 ├── prd.json             # ralph/team internal (_descriptor key; permanent)
 ├── progress.txt         # ralph/team trace log (no descriptor; trace kind)
@@ -261,8 +247,6 @@ All orchestration skills key their smart-skip logic on `.dt-handoff/<slug>/spec.
 |-------|---------------------|-------------------|
 | `git-commit` | Commit subject + body | `--lang=<value>` |
 | `github-pr` | PR description body | `--lang=<value>` |
-| `deep-interview` | Interview prompts + spec body | `--lang=<value>` |
-| `interview` | Interview questions + spec body | `--lang=<value>` |
 
 **Exempt** (always conversation-language or always Korean): `git-rebase-stack`, `curl-debug`, `code-review`, `install-statusline`, all agents.
 

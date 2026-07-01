@@ -31,7 +31,7 @@ kind: spec
 path: .dt-handoff/sample/spec.md
 contentHash: sha256:abc123
 createdAt: 2026-05-23T00:00:00Z
-producer: deep-interview
+producer: analyst
 sizeBytes: 100
 retention: permanent
 expiresAt: null
@@ -67,7 +67,7 @@ kind: spec
 path: .dt-handoff/sample/badstatus.md
 contentHash: sha256:abc123
 createdAt: 2026-05-23T00:00:00Z
-producer: deep-interview
+producer: analyst
 sizeBytes: 100
 retention: permanent
 expiresAt: null

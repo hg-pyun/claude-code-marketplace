@@ -41,7 +41,7 @@ kind: spec
 path: spec.md
 contentHash: sha256:bb
 createdAt: 2026-05-23T00:00:00Z
-producer: deep-interview
+producer: analyst
 sizeBytes: 50
 retention: permanent
 expiresAt: null

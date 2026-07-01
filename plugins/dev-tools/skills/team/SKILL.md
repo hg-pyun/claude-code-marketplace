@@ -20,7 +20,7 @@ Coordinate parallel multi-agent execution through a 5-stage pipeline: plan → p
 <Do_Not_Use_When>
 - The task has a strict sequential dependency chain (each story unblocks the next) — use `ralph`.
 - The task is a single story or single bug fix — delegate to `executor` directly.
-- The task is requirements capture — use `deep-interview`.
+- The task is requirements capture (WHAT, not HOW) — clarify the requirements into a spec first; team executes a plan.
 - The task is consensus planning — use `ralplan`.
 - The user wants automatic commit/PR — refuse; team stops at "ready for commit".
 - Total story count is ≥ 20 — split into multiple ralplan sessions first.

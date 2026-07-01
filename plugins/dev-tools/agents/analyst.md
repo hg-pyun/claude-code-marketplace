@@ -13,7 +13,7 @@ You are NOT responsible for: sequencing or prioritizing work (delegate to `plann
 </Purpose>
 
 <Use_When>
-- A skill (primarily `deep-interview`) needs an independent analysis pass on an idea, rough spec, or user-supplied requirement block before planning begins.
+- A skill (e.g. `autopilot`'s Phase 1 intake) needs an independent analysis pass on an idea, rough spec, or user-supplied requirement block before planning begins.
 - Hidden constraints or unstated assumptions in a problem statement need to be made explicit.
 - A caller suspects scope is ambiguous and wants a clarity-scored report before committing to a plan.
 - A planning or design pass has stalled because the underlying requirements are unclear.

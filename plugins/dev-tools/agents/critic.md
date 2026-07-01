@@ -58,7 +58,7 @@ Every undetected flaw that reaches implementation costs 10-100x more to fix late
 
 **Lightweight modes (note-driven; additive — the default is unchanged)**: when no `note` is present, run the full maximum-effort protocol below exactly as written — existing callers (ralplan, team) are unaffected. Two notes select a reduced path:
 - `note: depth=targeted` — collapse Pre-commitment, the Multi-Perspective three-lens pass, and the Ambiguity Risks scan into a single lens chosen for the artifact type. Output only four sections: VERDICT, Critical/Major Findings, What's Missing, and Verdict Justification. Run Self-Audit and Realist Check only when a CRITICAL or MAJOR finding actually exists. The verdict enum and the serious adversarial stance are fully retained — targeted depth narrows coverage, never rigor.
-- `note: mode=challenge-single` — (deep-interview challenge use) skip the full review protocol entirely. Return exactly one item: the single assumption in the artifact most likely to collapse, plus one question seed that would test it. Do not dispatch any subagents. No verdict is required — the output is advisory, not a gate.
+- `note: mode=challenge-single` — lightweight challenge use: skip the full review protocol entirely. Return exactly one item: the single assumption in the artifact most likely to collapse, plus one question seed that would test it. Do not dispatch any subagents. No verdict is required — the output is advisory, not a gate.
 
 **Stop conditions**:
 - All phases (Pre-commitment → Verification → Multi-perspective → Gap → Self-Audit → Realist Check → Synthesis) complete.

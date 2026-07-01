@@ -28,7 +28,7 @@ Install only the plugins you need; each is independently versioned.
 
 | Plugin | Description | Docs |
 |--------|-------------|------|
-| **dev-tools** | Multi-agent dev toolkit — 16 specialist agents and 12 entrypoints: orchestration (`/autopilot`, `/deep-interview`, `/interview`, `/ralplan`, `/ralph`, `/team`), review & debugging (`/code-review`, `/curl-debug`), git & GitHub (`/git-commit`, `/github-pr`, `/git-rebase-stack`), setup (`/install-statusline`). | [README](plugins/dev-tools/README.md) · [CLAUDE](plugins/dev-tools/CLAUDE.md) |
+| **dev-tools** | Multi-agent dev toolkit — 16 specialist agents and 10 entrypoints: orchestration (`/autopilot`, `/ralplan`, `/ralph`, `/team`), review & debugging (`/code-review`, `/curl-debug`), git & GitHub (`/git-commit`, `/github-pr`, `/git-rebase-stack`), setup (`/install-statusline`). | [README](plugins/dev-tools/README.md) · [CLAUDE](plugins/dev-tools/CLAUDE.md) |
 | **linear-tools** | Interview-driven Linear ticket enrichment — `/enrich-ticket` writes a structured ticket body back via the Linear MCP. | [README](plugins/linear-tools/README.md) |
 
 For the marketplace's own architecture, schemas, validation rules, and governance, see **[CLAUDE.md](CLAUDE.md)**.

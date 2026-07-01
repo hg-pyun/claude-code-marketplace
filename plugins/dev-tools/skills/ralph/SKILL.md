@@ -16,7 +16,7 @@ Drive a PRD-defined task to completion through a story-by-story loop: TDD-first 
 </Use_When>
 
 <Do_Not_Use_When>
-- The user wants requirements capture → `deep-interview`.
+- The user wants requirements capture (WHAT, not HOW), not execution → establish a spec first; ralph runs an existing plan/PRD.
 - The user wants consensus planning → `ralplan`.
 - The user wants parallel multi-agent decomposition → `team`.
 - The user wants a one-shot / trivial change → delegate to `executor` directly, no PRD overhead.

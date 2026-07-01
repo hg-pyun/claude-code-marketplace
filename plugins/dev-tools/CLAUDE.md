@@ -9,7 +9,6 @@ plugins/dev-tools/
 ├── agents/      # 16 agents across 4 lanes — see agents/*.md for roster and role boundaries
 ├── commands/    # git-rebase-stack
 ├── skills/      # orchestration: autopilot ralplan ralph team
-│                # interview:     deep-interview interview
 │                # review/debug:  code-review curl-debug
 │                # git:           git-commit github-pr
 │                # setup:         install-statusline

@@ -10,7 +10,7 @@ The non-negotiable invariant is **adversarial blind-spot elimination = author �
 </Purpose>
 
 <Use_When>
-- A spec (`.dt-handoff/<slug>/spec.md` from `deep-interview`/`interview`, or an ad-hoc description) needs a vetted implementation plan before any code is written.
+- A spec (`.dt-handoff/<slug>/spec.md`, or an ad-hoc description) needs a vetted implementation plan before any code is written.
 - User invokes `/ralplan`, says "ralplan", "plan this with consensus", "합의 계획 잡아줘".
 - The work involves architectural choices, migrations, or high-risk areas (auth, security, destructive changes) and warrants a wider panel + pre-mortem + expanded test planning (auto-detected → HIGH tier).
 - `autopilot` Phase 2 (Planning) calls this skill as a sub-step.
@@ -18,7 +18,7 @@ The non-negotiable invariant is **adversarial blind-spot elimination = author �
 
 <Do_Not_Use_When>
 - The user wants execution, not planning — route to `ralph` or `autopilot`.
-- The user wants requirements capture (WHAT, not HOW) — route to `deep-interview` / `interview`.
+- The user wants requirements capture (WHAT, not HOW) rather than a plan — clarify the requirements into a spec first, then return to ralplan.
 - The user wants a one-shot bug fix or trivial change with no design choice — delegate to `executor` directly (ralplan will still run a minimal N=1 panel if invoked, but it is overkill).
 - The user wants free-form brainstorming with no committed artifact — answer directly without invoking ralplan.
 - The user wants severity-rated review of an existing plan — use `code-review` or `critic` directly.
