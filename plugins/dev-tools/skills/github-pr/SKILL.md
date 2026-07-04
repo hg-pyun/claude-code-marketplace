@@ -129,6 +129,8 @@ Per `references/conventional-commit.md`. Title `type(scope)` parts stay English;
 
 Summary and Changes auto-written **in $LANGUAGE** by analyzing the commit history and diff. Section headers (`## Summary`, `## Changes`) stay English.
 
+**Korean polish pass:** when the body language is Korean, polish the drafted body text with the translation-ese catalog and judgment principles from `${CLAUDE_PLUGIN_ROOT}/skills/doctor-korean-document/SKILL.md` (`<Translation_Catalog>`, `<Judgment_Principles>`, `<Protected_Regions>`) before creating the PR. This applies to the draft text in memory — it is a step of this skill, not a separate invocation of `/doctor-korean-document` (which is file-only). Code spans, identifiers, URLs, and issue links stay untouched.
+
 ### Step 7: Create or update PR
 1. **If updating an existing PR** (PR number saved in Step 3):
    - Use GitHub MCP `update_pull_request`.
@@ -171,6 +173,7 @@ Flow: branch reflog says created from `feature/step-1` → use it as base → pu
 - For a large diff, did I work from `--stat` + capped per-file excerpts instead of the full diff?
 - Did the title use English `type(scope)` + `$LANGUAGE` description?
 - Did the body use English headers (`## Summary`, `## Changes`) and `$LANGUAGE` content?
+- For a Korean body, did I run the doctor-korean-document polish pass on the draft before creating the PR?
 - Did the body use real newlines (not escaped `\n`)?
 - Did I return the created/updated PR URL?
 </Final_Checklist>

@@ -30,7 +30,7 @@
       "name": "dev-tools",
       "source": "./plugins/dev-tools",
       "description": "Multi-agent dev toolkit: orchestration, code review, git/GitHub workflows, and debugging",
-      "version": "2026.07.02.1",
+      "version": "2026.07.05",
       "keywords": [
         "git",
         "commit",
