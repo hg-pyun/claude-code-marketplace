@@ -90,7 +90,30 @@ Seeded from well-known Korean translation-ese corrections, then reviewed by a Ko
 | 22 | `~에도 불구하고` (despite) | `~는데도`, `~아/어도` | 경고에도 불구하고 실행됩니다 → 경고가 있어도 실행됩니다 | — |
 | 23 | 동작명사+`을/를 진행하다` | `~하다` | 마이그레이션을 진행합니다 → 마이그레이션합니다 | 실제 절차의 진행 상황을 말하는 문맥이면 유지 |
 
-Substitution rule: the sentence frame stays; only the matched phrase (and its particles) changes. An entry's 적용 조건 is part of the pattern — when the condition fails, either leave the text or hand the sentence to judgment. If applying an entry would require touching anything beyond the phrase, hand the sentence to judgment (below) instead.
+**직역 어휘 (word-level).** AI 문서에는 구문만이 아니라 낱말 자체가 영어를 그대로 옮긴 듯한 경우가 있다 (exist→존재하다, perform→수행하다, successfully→성공적으로). 아래 어휘 표도 같은 치환 규칙을 따른다 — 단어(와 조사)만 바꾸고 문장 틀은 유지. **일반 어휘만 대상이다**: `<Protected_Regions>`의 기술 용어·고유명사·UI 라벨은 어색해 보여도 건드리지 않는다.
+
+| # | 직역 어휘 | 교정 | 예시 (before → after) | 적용 조건·예외 |
+|---|-----------|------|----------------------|----------------|
+| W1 | `존재하다` (exist) | `있다` | 두 가지 옵션이 존재합니다 → 두 가지 옵션이 있습니다 | 부정형 `존재하지 않다`는 `없다`로 교정 (`있지 않다`는 비문에 가까움) |
+| W2 | `수행하다` (perform) | `~하다`, `실행하다` | 검증을 수행합니다 → 검증합니다 | 목적어가 동작명사(검증, 마이그레이션 등)일 때만 `~하다` 축약; `역할·임무` 등 굳은 결합은 유지 |
+| W3 | `활용하다` 남용 (utilize/leverage) | `사용하다`, `쓰다` | 캐시를 활용하여 조회 속도를 높입니다 → 캐시를 사용해 조회 속도를 높입니다 | '용도를 살려 응용한다'는 뉘앙스가 요점이면 유지 |
+| W4 | `다양한`/`다수의` 남용 (various/multiple) | `여러`, `많은` | 다양한 옵션을 지원합니다 → 여러 옵션을 지원합니다 | 종류의 다양성 자체가 요점이면 유지; `다수`가 많음·과반을 함의하면 `많은`으로 |
+| W5 | `동일한` (identical) | `같은` | 동일한 결과가 나옵니다 → 같은 결과가 나옵니다 | — |
+| W6 | `상이한` (different) | `다른` | 상이한 결과가 반환됩니다 → 다른 결과가 반환됩니다 | — |
+| W7 | `용이하다` (easy) | `쉽다` | 확장이 용이합니다 → 확장이 쉽습니다 | — |
+| W8 | `요구되다` (is required) | `필요하다` | 인증이 요구됩니다 → 인증이 필요합니다 | — |
+| W9 | `성공적으로` (successfully) | 삭제, 또는 `정상적으로` | 성공적으로 설치되었습니다 → 설치되었습니다 | 실패 경로와 대비하는 문맥이면 유지 |
+| W10 | `해당` 남용 (the/corresponding) | `이`, `그`, 또는 삭제 | 해당 파일을 엽니다 → 그 파일을 엽니다 | 관형사 용법만; 동사 `해당하다`("조건에 해당하는")는 대상 아님. 지시 대상이 문맥상 명확할 때만 |
+| W11 | `부재` (absence) | `없음`, `~이 없으면` | 설정 부재 시 기본값을 사용합니다 → 설정이 없으면 기본값을 사용합니다 | — |
+| W12 | `~ 여부` 남용 (whether) | `~는지` | 파일 존재 여부를 확인합니다 → 파일이 있는지 확인합니다 | 표 헤더·필드명 등 명사형 자리는 유지; `여부와 관계없이/여부에 따라` 등 조사 결합형은 judgment로 이관 |
+| W13 | `본` (this) | `이` | 본 문서에서는 설정 방법을 다룹니다 → 이 문서에서는 설정 방법을 다룹니다 | 관형사 용법만; `본질`, `기본` 등 합성어 내부는 제외 |
+| W14 | `상기`/`하기` (the above/below) | `위`/`아래` | 상기 명령을 실행합니다 → 위 명령을 실행합니다 | — |
+| W15 | `야기하다` (cause) | `일으키다` | 메모리 누수를 야기합니다 → 메모리 누수를 일으킵니다 | — |
+| W16 | `기술하다` (describe) | `설명하다`, `적다` | 각 필드를 아래에 기술합니다 → 각 필드를 아래에 설명합니다 | 서술 동사 용법만 (명사 `기술(技術)`과 무관할 때) |
+
+> 어휘 표 확장 시 주의: `생성하다`, `발생하다`, `제공하다`, `~ 시`는 기술 문서에서 관용으로 굳어 과잉 교정 위험이 크므로 **추가하지 않는다** (전문가 검증에서 명시 제외).
+
+Substitution rule: the sentence frame stays; only the matched phrase or word (and its particles) changes. An entry's 적용 조건 is part of the pattern — when the condition fails, either leave the text or hand the sentence to judgment. If applying an entry would require touching anything beyond the phrase, hand the sentence to judgment (below) instead.
 </Translation_Catalog>
 
 <Judgment_Principles>
@@ -130,8 +153,8 @@ Never edited, regardless of what they contain:
 1. Read the full file.
 2. Mentally mark every `<Protected_Regions>` span — these are hard boundaries for every subsequent step.
 
-### Step 3: Catalog pass (phrase-level)
-1. Sweep the prose for `<Translation_Catalog>` patterns.
+### Step 3: Catalog pass (phrase- and word-level)
+1. Sweep the prose for `<Translation_Catalog>` patterns — both the phrase table and the 직역 어휘 word table.
 2. Apply each match as a minimal substitution: pattern out, correction in, particles adjusted, sentence frame intact.
 3. If a match cannot be fixed without touching the rest of the sentence, defer it to Step 4.
 
