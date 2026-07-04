@@ -62,40 +62,46 @@ AI writes Korean that is grammatically fine but recognizably machine-flavored: "
 </Arguments>
 
 <Translation_Catalog>
-Seeded from well-known Korean translation-ese corrections. Each entry is a **phrase-level substitution**: apply mechanically wherever the pattern appears outside protected regions, adjusting particles to fit. Grow this list by hand when a new pattern proves annoying — additions are maintainer edits, not runtime learning.
+Seeded from well-known Korean translation-ese corrections, then reviewed by a Korean-language expert pass. Each entry is a **phrase-level substitution**: apply mechanically wherever the pattern appears outside protected regions, adjusting particles to fit. Every pattern **includes its 관형형/명사형 variants** (`~에 대한`, `~를 통한`, `~에 의한`, `~를 필요로 하는`, `~에 위치한`, …). Grow this list by hand when a new pattern proves annoying — additions are maintainer edits, not runtime learning.
 
-| # | 번역투 패턴 | 교정 | 예시 (before → after) |
-|---|------------|------|----------------------|
-| 1 | `~에 대해/대하여` (about) | 목적격 조사로 직결 | 설정 방법에 대해 설명합니다 → 설정 방법을 설명합니다 |
-| 2 | `~를 통해` (through) | `~로`, `~을 이용해` | API를 통해 데이터를 가져옵니다 → API로 데이터를 가져옵니다 |
-| 3 | `~에 의해` (by) | 능동형으로 | 스케줄러에 의해 실행됩니다 → 스케줄러가 실행합니다 |
-| 4 | `~되어지다`, `~되어집니다` (이중 피동) | `~되다`, `~됩니다` | 자동으로 생성되어집니다 → 자동으로 생성됩니다 |
-| 5 | `~하는 것이 가능하다` (it is possible to) | `~할 수 있다` | 확장하는 것이 가능합니다 → 확장할 수 있습니다 |
-| 6 | `~함에 있어(서)` | `~할 때`, 또는 삭제 | 배포함에 있어 주의할 점 → 배포할 때 주의할 점 |
-| 7 | `~에 있어(서)` (in/for) | `~에서`, `~의 경우`, 또는 삭제 | 성능에 있어서 중요한 → 성능에서 중요한 |
-| 8 | `만약 ~(하)면` (if) | `만약` 삭제 | 만약 값이 없으면 → 값이 없으면 |
-| 9 | `~하지 않으면 안 된다` (이중 부정) | `~해야 한다` | 설정하지 않으면 안 됩니다 → 설정해야 합니다 |
-| 10 | `~라고 불린다` (is called) | `~라고 한다` | 미들웨어라고 불립니다 → 미들웨어라고 합니다 |
-| 11 | `~를 가지고 있다` (have) | `~이/가 있다` | 세 가지 옵션을 가지고 있습니다 → 옵션이 세 가지 있습니다 |
-| 12 | `~을/를 필요로 하다` (require) | `~이/가 필요하다` | 인증을 필요로 합니다 → 인증이 필요합니다 |
-| 13 | `~에 위치하다` (is located) | `~에 있다` | 루트에 위치합니다 → 루트에 있습니다 |
-| 14 | `~로부터` (from) | `~에서` | 서버로부터 응답을 받아 → 서버에서 응답을 받아 |
-| 15 | `~와/과 함께` (with, 도구·수단) | `~로`, `~와` | 이 설정과 함께 실행하면 → 이 설정으로 실행하면 |
-| 16 | 복수 `~들` 남용 | 문맥상 복수가 자명하면 삭제 | 아래 파일들을 수정합니다 → 아래 파일을 수정합니다 |
-| 17 | `~하고 있습니다` (진행형 남용, 상태 서술) | `~합니다` | 이 기능을 지원하고 있습니다 → 이 기능을 지원합니다 |
-| 18 | `가장 ~ 중 하나` (one of the most) | 단정하거나 완화 표현으로 | 가장 널리 쓰이는 도구 중 하나입니다 → 널리 쓰이는 도구입니다 |
+| # | 번역투 패턴 | 교정 | 예시 (before → after) | 적용 조건·예외 |
+|---|------------|------|----------------------|----------------|
+| 1 | `~에 대해/대하여` (about) | 목적격 조사로 직결 | 설정 방법에 대해 설명합니다 → 설정 방법을 설명합니다 | 서술어가 그 명사를 목적어로 자연스럽게 취할 때만("오류에 대해 사과합니다"는 불가); 아니면 judgment로 이관 |
+| 2 | `~를 통해` (through) | `~로`, `~을 이용해` | API를 통해 데이터를 가져옵니다 → API로 데이터를 가져옵니다 | 수단·도구일 때만. 매개가 사람이면 `~를 거쳐`/`~에게서`; 물리적 통과("터널을 통해")는 원문 유지 |
+| 3 | `~에 의해` (by) | 능동형으로 | 스케줄러에 의해 실행됩니다 → 스케줄러가 실행합니다 | 원문에 주어가 있으면 주어·목적어 역할 교체가 필요하므로 **judgment로 이관** |
+| 4 | `~되어지다`, `~되어집니다` (이중 피동) | `~되다`, `~됩니다` | 자동으로 생성되어집니다 → 자동으로 생성됩니다 | — |
+| 5 | `~하는 것이 가능하다` (it is possible to) | `~할 수 있다` | 확장하는 것이 가능합니다 → 확장할 수 있습니다 | — |
+| 6 | `~함에 있어(서)` | `~할 때`, 또는 삭제 | 배포함에 있어 주의할 점 → 배포할 때 주의할 점 | — |
+| 7 | `~에 있어(서)` (in/for) | `~에`, `~ 면에서`, `~의 경우`, 또는 삭제 | 성능에 있어서 중요한 → 성능에 중요한 | — |
+| 8 | `만약 ~(하)면` (if) | `만약` 삭제 | 만약 값이 없으면 → 값이 없으면 | 조건절이 짧아 `-면`이 문두에서 가까울 때만; 긴 조건절·강조 맥락에서는 유지 (규범 오류가 아닌 문체 교정임) |
+| 9 | `~하지 않으면 안 된다` (이중 부정) | `~해야 한다` | 설정하지 않으면 안 됩니다 → 설정해야 합니다 | — |
+| 10 | `~라고 불린다` (is called) | `~라고 한다` | 미들웨어라고 불립니다 → 미들웨어라고 합니다 | — |
+| 11 | `~를 가지고 있다` (have) | `~이/가 있다` | 세 가지 옵션을 가지고 있습니다 → 옵션이 세 가지 있습니다 | — |
+| 12 | `~을/를 필요로 하다` (require) | `~이/가 필요하다` | 인증을 필요로 합니다 → 인증이 필요합니다 | — |
+| 13 | `~에 위치하다` (is located) | `~에 있다` | 루트에 위치합니다 → 루트에 있습니다 | — |
+| 14 | `~로부터` (from) | 무정물 출처 `~에서` / 유정물 출처 `~에게서` | 서버로부터 응답을 받아 → 서버에서 응답을 받아 | 출처가 사람·조직이면 반드시 `~에게서`("친구에서 들었다"는 비문); `~에서`는 장소·시스템에만 |
+| 15 | `~와/과 함께` (with) | `~로`, `~와` | 이 설정과 함께 실행하면 → 이 설정으로 실행하면 | 도구·수단일 때만; 동반("팀과 함께")·동시("릴리스와 함께 추가") 의미면 원문 유지 |
+| 16 | 복수 `~들` 남용 | 삭제 | 아래 파일들을 수정합니다 → 아래 파일을 수정합니다 | 문맥상 복수가 자명할 때만 |
+| 17 | `~하고 있습니다` (진행형 남용) | `~합니다` | 이 기능을 지원하고 있습니다 → 이 기능을 지원합니다 | 항구적 상태·능력 서술만; 실제 진행 중인 동작("서버가 재시작하고 있습니다")은 유지 |
+| 18 | `가장 ~ 중 하나` (one of the most) | 단정·완화, 또는 `손꼽히는 ~` | 가장 널리 쓰이는 도구 중 하나입니다 → 널리 쓰이는 도구입니다 | 명제 강도가 바뀌므로, 사실 정확성이 중요한 문맥(비교 주장·수치 근거 서술)에서는 건너뜀 |
+| 19 | `~로 인해` (due to) | `~ 때문에`, `~로` | 오류로 인해 실패했습니다 → 오류 때문에 실패했습니다 | — |
+| 20 | `~함으로써` (by ~ing) | `~해(서)`, `~하여` | 캐시를 사용함으로써 성능을 높입니다 → 캐시를 사용해 성능을 높입니다 | — |
+| 21 | 조사+`의` (`~로의`, `~에의`, `~와의`, `~에서의`) | 풀어쓰기 또는 삭제 | 데이터베이스로의 연결 → 데이터베이스 연결 | — |
+| 22 | `~에도 불구하고` (despite) | `~는데도`, `~아/어도` | 경고에도 불구하고 실행됩니다 → 경고가 있어도 실행됩니다 | — |
+| 23 | 동작명사+`을/를 진행하다` | `~하다` | 마이그레이션을 진행합니다 → 마이그레이션합니다 | 실제 절차의 진행 상황을 말하는 문맥이면 유지 |
 
-Substitution rule: the sentence frame stays; only the matched phrase (and its particles) changes. If applying an entry would require touching anything beyond the phrase, hand the sentence to judgment (below) instead.
+Substitution rule: the sentence frame stays; only the matched phrase (and its particles) changes. An entry's 적용 조건 is part of the pattern — when the condition fails, either leave the text or hand the sentence to judgment. If applying an entry would require touching anything beyond the phrase, hand the sentence to judgment (below) instead.
 </Translation_Catalog>
 
 <Judgment_Principles>
 For awkwardness the catalog does not list. Ceiling: **rewrite within a single sentence**. Principles, in priority order:
 
-1. **De-passivize** — unnecessary passives (`~된다`, `~받다`, `~어지다`) become active voice when the actor is clear.
-2. **De-nominalize** — noun-heavy constructions become verbs: `설치를 진행합니다` → `설치합니다`, `개선이 이루어졌다` → `개선했다`.
+1. **De-passivize (남용 시에만)** — `~받다`/`~되다` are legitimate Korean passives; target only double-passive residue and passives whose actor is clearly stated in the sentence. **Never introduce an actor the original does not name**: `개선이 이루어졌다` → `개선됐다` (행위자 불명 유지), not `개선했다`.
+2. **De-nominalize** — noun-heavy constructions become verbs: `배포가 이루어졌다` → `배포됐다`, `검토를 수행합니다` → `검토합니다`.
 3. **Restore Korean word order** — English SVO residue and trailing qualifiers move to natural Korean order; long pre-noun modifier chains (관형절 중첩) unwind *within the sentence*.
 4. **Drop dummy pronouns** — `그것`, `이것`, `해당` referring to the obvious noun are deleted or replaced with the noun.
-5. **Prune hedging fillers** — `~할 수 있습니다` used as decoration (not ability), `기본적으로`, `일반적으로` with no informational value.
+5. **Prune hedging fillers** — `~할 수 있습니다` used as decoration (not ability), `일반적으로` with no informational value. **Exception:** `기본적으로` meaning *by default* is a spec statement, not filler — never delete; clarify to `기본값으로` if anything.
+6. **Preserve register (어체 보존)** — keep the document's existing 어체 (합쇼체/해요체/개조식 `~함`·`~하기`) exactly as found; never unfold 개조식 bullets into full sentences, never mix registers within a document.
 
 If a principle-based rewrite risks nuance drift, skip it. Judgment covers less; that is the accepted trade.
 </Judgment_Principles>
@@ -105,9 +111,11 @@ Never edited, regardless of what they contain:
 
 - **Code**: fenced code blocks, inline code spans, indented code.
 - **Machine strings**: URLs, file paths, identifiers (function/variable/flag/branch names), version strings, shell commands and their output.
-- **Verbatim quotes**: blockquoted external text, error messages, log excerpts — quoted material is evidence, not prose.
+- **Verbatim quotes**: blockquoted external text, **inline quotes inside 따옴표** (인용된 발화·원문), error messages, log excerpts — quoted material is evidence, not prose.
 - **Metadata**: YAML frontmatter, HTML comments, badge/link reference definitions.
 - **Terminology & proper nouns**: technical terms (원어든 음차든 그대로), product/library names.
+- **UI strings**: product UI labels and menu paths (`설정 > 일반` 등) — they must match the real UI, awkward or not.
+- **Anchor-target headings**: a heading referenced by an in-document `#anchor` link or TOC is protected — polishing it breaks the link. Check for references before touching any heading.
 - **Non-Korean prose**: English or other-language sentences and paragraphs.
 - **Table structure**: cells may have their Korean prose polished, but rows/columns are never added, removed, or reordered.
 </Protected_Regions>
